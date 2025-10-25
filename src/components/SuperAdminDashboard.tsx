@@ -303,8 +303,25 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     };
     
     const actionName = actionNames[action as keyof typeof actionNames] || action;
-    toast.loading(`Processing ${actionName}...`, {
-      duration: 3000,
+    
+    // Add confirmation for critical actions
+    if (action === 'deploy' || action === 'git-pull' || action === 'restart') {
+      const confirmed = window.confirm(
+        action === 'deploy' 
+          ? 'Are you sure you want to deploy? This will update the production system.'
+          : action === 'git-pull'
+          ? 'Are you sure you want to pull from Git? This will update the codebase.'
+          : 'Are you sure you want to restart the system? This will cause temporary downtime.'
+      );
+      
+      if (!confirmed) {
+        toast.info('Operation cancelled');
+        return;
+      }
+    }
+    
+    const loadingToast = toast.loading(`Processing ${actionName}...`, {
+      duration: 1000, // Reduced duration
     });
     
     try {
@@ -344,9 +361,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       
       if (res.ok) {
         const data = await res.json();
-        toast.success(`✅ ${actionName} completed successfully!`, {
+        toast.dismiss(loadingToast); // Dismiss loading toast
+        toast.success(`✅ ${actionName} completed!`, {
           description: data.message || 'Operation completed',
-          duration: 4000,
+          duration: 2000, // Reduced duration
         });
         logActivity(`${actionName}`, 'System operation completed');
         
@@ -361,21 +379,21 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         if (action === 'run-tests' && data.results) {
           toast.success(`Tests: ${data.results.passed} passed, ${data.results.failed} failed`, {
             description: `Duration: ${data.results.duration}`,
-            duration: 5000,
+            duration: 2000, // Reduced duration
           });
         }
         
         if (action === 'deploy' && data.version) {
           toast.success(`Deployed version ${data.version}`, {
             description: data.timestamp,
-            duration: 5000,
+            duration: 2000, // Reduced duration
           });
         }
         
         if (action === 'git-pull' && data.commits) {
           toast.success(`Pulled ${data.commits} commits`, {
             description: `${data.filesChanged} files changed`,
-            duration: 4000,
+            duration: 2000, // Reduced duration
           });
         }
         
@@ -390,9 +408,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         throw new Error(errorData.error || 'Action failed');
       }
     } catch (error: any) {
+      toast.dismiss(loadingToast); // Dismiss loading toast
       toast.error(`❌ Failed to ${actionName.toLowerCase()}`, {
         description: error.message || 'Please try again',
-        duration: 4000,
+        duration: 2000, // Reduced duration
       });
       logActivity(`${actionName} Failed`, error.message || 'Operation failed');
     }
