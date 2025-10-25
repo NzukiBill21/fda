@@ -276,7 +276,6 @@ export function CheckoutDialog({ isOpen, onClose, total, onConfirmOrder }: Check
                               ? 'border-green-600 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg'
                               : 'border-gray-200 bg-white hover:border-green-300'
                           }`}
-                          onClick={() => setFormData({ ...formData, paymentMethod: 'mpesa' })}
                         >
                           <RadioGroupItem value="mpesa" id="mpesa" className="w-5 h-5" />
                           <Label htmlFor="mpesa" className="flex items-center gap-4 cursor-pointer flex-1">
@@ -303,7 +302,6 @@ export function CheckoutDialog({ isOpen, onClose, total, onConfirmOrder }: Check
                               ? 'border-blue-600 bg-gradient-to-r from-blue-50 to-cyan-50 shadow-lg'
                               : 'border-gray-200 bg-white hover:border-blue-300'
                           }`}
-                          onClick={() => setFormData({ ...formData, paymentMethod: 'cash' })}
                         >
                           <RadioGroupItem value="cash" id="cash" className="w-5 h-5" />
                           <Label htmlFor="cash" className="flex items-center gap-4 cursor-pointer flex-1">

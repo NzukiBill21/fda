@@ -198,9 +198,18 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           break;
       }
       
+      let body: string | undefined = undefined;
+      if (action === 'promote') {
+        body = JSON.stringify({ role: 'Admin' }); // Default promotion to Admin
+      }
+      
       const res = await fetch(`http://localhost:5000${endpoint}`, {
         method,
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body
       });
       
       if (res.ok) {
