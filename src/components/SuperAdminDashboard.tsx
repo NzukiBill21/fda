@@ -170,7 +170,8 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       'activate': 'User Activation',
       'deactivate': 'User Deactivation',
       'delete': 'User Deletion',
-      'promote': 'User Promotion'
+      'promote': 'User Promotion',
+      'demote': 'User Demotion'
     };
     
     const actionName = actionNames[action as keyof typeof actionNames] || action;
@@ -196,11 +197,16 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         case 'promote':
           endpoint = `/api/admin/users/${userId}/promote`;
           break;
+        case 'demote':
+          endpoint = `/api/admin/users/${userId}/demote`;
+          break;
       }
       
       let body: string | undefined = undefined;
       if (action === 'promote') {
         body = JSON.stringify({ role: 'ADMIN' }); // Default promotion to ADMIN (uppercase)
+      } else if (action === 'demote') {
+        body = JSON.stringify({ role: 'USER' }); // Default demotion to USER
       }
       
       const res = await fetch(`http://localhost:5000${endpoint}`, {
@@ -684,6 +690,13 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                               title="Promote User"
                             >
                               <UserPlus className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleUserAction('demote', user.id)}
+                              className="p-2 rounded-lg bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 hover:scale-110 transition-all"
+                              title="Demote User"
+                            >
+                              <UserMinus className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setConfirmAction({

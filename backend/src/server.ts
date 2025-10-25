@@ -674,6 +674,45 @@ app.post('/api/admin/users/:userId/deactivate', async (req, res) => {
   }
 });
 
+// User demotion endpoint
+app.post('/api/admin/users/:userId/demote', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+    
+    // Get the role ID (case-insensitive lookup)
+    const roleName = (role || 'USER').toUpperCase();
+    const roleRecord = await prisma.role.findFirst({
+      where: { name: roleName }
+    });
+
+    if (!roleRecord) {
+      return res.status(400).json({ error: 'Role not found' });
+    }
+
+    // First, remove existing roles for this user
+    await prisma.userRole.deleteMany({
+      where: { userId: userId }
+    });
+
+    // Then add the new role
+    await prisma.userRole.create({
+      data: {
+        userId: userId,
+        roleId: roleRecord.id
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `User demoted to ${roleName} successfully`
+    });
+  } catch (error: any) {
+    console.error('User demotion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/admin/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
