@@ -175,8 +175,8 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     };
     
     const actionName = actionNames[action as keyof typeof actionNames] || action;
-    toast.loading(`Processing ${actionName}...`, {
-      duration: 2000,
+    const loadingToast = toast.loading(`Processing ${actionName}...`, {
+      duration: 1000, // Reduced duration
     });
     
     try {
@@ -220,9 +220,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       
       if (res.ok) {
         const data = await res.json();
+        toast.dismiss(loadingToast); // Dismiss loading toast
         toast.success(`✅ ${actionName} successful!`, {
           description: data.message || 'User operation completed',
-          duration: 3000,
+          duration: 2000, // Reduced duration
         });
         fetchUsers();
         logActivity(`${actionName}`, `User ID: ${userId} - ${data.message || 'Operation completed'}`);
@@ -231,9 +232,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         throw new Error(errorData.error || 'Action failed');
       }
     } catch (error: any) {
+      toast.dismiss(loadingToast); // Dismiss loading toast
       toast.error(`❌ Failed to ${actionName.toLowerCase()}`, {
         description: error.message || 'Please try again',
-        duration: 3000,
+        duration: 2000, // Reduced duration
       });
       logActivity(`${actionName} Failed`, `User ID: ${userId} - ${error.message}`);
     }
@@ -246,8 +248,8 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     };
     
     const actionName = actionNames[action as keyof typeof actionNames] || action;
-    toast.loading(`Processing ${actionName}...`, {
-      duration: 1500,
+    const loadingToast = toast.loading(`Processing ${actionName}...`, {
+      duration: 1000, // Reduced duration
     });
     
     try {
@@ -271,9 +273,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       
       if (res.ok) {
         const data = await res.json();
+        toast.dismiss(loadingToast); // Dismiss loading toast
         toast.success(`✅ ${actionName} successful!`, {
           description: data.message || 'Menu operation completed',
-          duration: 3000,
+          duration: 2000, // Reduced duration
         });
         fetchMenuItems();
         logActivity(`${actionName}`, `Item ID: ${itemId} - ${data.message || 'Operation completed'}`);
@@ -282,9 +285,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         throw new Error(errorData.error || 'Action failed');
       }
     } catch (error: any) {
+      toast.dismiss(loadingToast); // Dismiss loading toast
       toast.error(`❌ Failed to ${actionName.toLowerCase()}`, {
         description: error.message || 'Please try again',
-        duration: 3000,
+        duration: 2000, // Reduced duration
       });
       logActivity(`${actionName} Failed`, `Item ID: ${itemId} - ${error.message}`);
     }
