@@ -1,0 +1,40 @@
+/* ==========================================
+   PROFESSIONAL RESPONSIVE - NON-DESTRUCTIVE
+   Only adds mobile support, doesn't break desktop
+   ========================================== */
+
+/* Mobile viewport optimization */
+@media (max-width: 768px) {
+  /* Container spacing for mobile */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Stack grid layouts on mobile */
+  [class*="grid-cols-2"],
+  [class*="grid-cols-3"],
+  [class*="grid-cols-4"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Mobile-friendly form inputs (prevents iOS zoom) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Tablet optimization */
+@media (min-width: 769px) and (max-width: 1024px) {
+  [class*="grid-cols-3"],
+  [class*="grid-cols-4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Touch-friendly buttons (mobile) */
+@media (max-width: 768px) {
+  button {
+    min-height: 44px;
+  }
+}

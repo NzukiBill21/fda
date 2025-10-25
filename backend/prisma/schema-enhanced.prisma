@@ -1,0 +1,523 @@
+// Enhanced Prisma Schema with Advanced RBAC
+// Date: 23/10/2025 - Monda App Requirements
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENHANCED USER MODEL WITH RBAC
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN      // Level 3 - Full system control (3 users max)
+  ADMIN            // Level 2 - Analytics, Orders, User management (2 users max)
+  SUB_ADMIN        // Level 1 - Limited admin rights (3 users max)
+  DELIVERY_GUY     // Delivery personnel
+  CUSTOMER         // Regular customers
+}
+
+enum PermissionType {
+  // Super Admin Permissions
+  MANAGE_SUPER_ADMINS
+  MANAGE_ADMINS
+  MANAGE_SUB_ADMINS
+  SYSTEM_CONFIGURATION
+  VIEW_ALL_ANALYTICS
+  MANAGE_PAYMENTS
+  MANAGE_DATABASE
+  
+  // Admin Permissions
+  MANAGE_ORDERS
+  MANAGE_USERS
+  MANAGE_MENU
+  VIEW_ANALYTICS
+  ADD_PEOPLE
+  MANAGE_DELIVERY
+  
+  // Sub-Admin Permissions
+  VIEW_ORDERS
+  UPDATE_ORDER_STATUS
+  VIEW_USERS
+  VIEW_MENU
+  
+  // Delivery Guy Permissions
+  VIEW_ASSIGNED_ORDERS
+  UPDATE_DELIVERY_STATUS
+  VIEW_DELIVERY_LOCATION
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String    @unique
+  password      String
+  name          String
+  role          UserRole  @default(CUSTOMER)
+  
+  // Enhanced fields
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  profileImage  String?
+  
+  // RBAC
+  permissions   UserPermission[]
+  
+  // Tracking
+  lastLogin     DateTime?
+  loginAttempts Int       @default(0)
+  lockedUntil   DateTime?
+  
+  // Two-Factor Authentication
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  
+  // Preferences for ML
+  preferences   Json?
+  
+  // African cultural preferences
+  language      String?   @default("en")
+  region        String?   @default("Kenya")
+  
+  // Relationships
+  orders        Order[]
+  reviews       Review[]
+  favorites     Favorite[]
+  addresses     Address[]
+  cart          CartItem[]
+  sessions      Session[]
+  
+  // Delivery Guy specific
+  assignedOrders Order[] @relation("DeliveryGuyOrders")
+  deliveryStats  DeliveryStats?
+  
+  // Admin activity logs
+  activityLogs  ActivityLog[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     String?
+  
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([isActive])
+}
+
+// ============================================
+// RBAC PERMISSION MODEL
+// ============================================
+
+model UserPermission {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission  PermissionType
+  
+  grantedBy   String?
+  grantedAt   DateTime       @default(now())
+  expiresAt   DateTime?
+  
+  @@unique([userId, permission])
+  @@index([userId])
+}
+
+// ============================================
+// ACTIVITY LOG FOR ADMINS
+// ============================================
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action      String   // e.g., "CREATED_ORDER", "UPDATED_USER", "DELETED_ITEM"
+  entity      String   // e.g., "Order", "User", "MenuItem"
+  entityId    String?
+  
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// DELIVERY GUY STATS
+// ============================================
+
+model DeliveryStats {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalDeliveries     Int      @default(0)
+  successfulDeliveries Int     @default(0)
+  averageRating       Float    @default(0)
+  totalEarnings       Float    @default(0)
+  
+  currentLocation     Json?    // {lat, lng, timestamp}
+  isAvailable         Boolean  @default(true)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ============================================
+// SESSION WITH ENHANCED SECURITY
+// ============================================
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String   @unique
+  
+  // Security
+  ipAddress   String?
+  userAgent   String?
+  fingerprint String?
+  
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastActivity DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// ============================================
+// ADDRESS MODEL (UNCHANGED)
+// ============================================
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  label       String
+  street      String
+  building    String?
+  area        String
+  city        String   @default("Nairobi")
+  
+  latitude    Float?
+  longitude   Float?
+  
+  isDefault   Boolean  @default(false)
+  
+  orders      Order[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+// ============================================
+// ENHANCED MENU ITEM
+// ============================================
+
+model MenuItem {
+  id            String   @id @default(uuid())
+  name          String
+  description   String
+  price         Float
+  image         String
+  category      String
+  
+  // Nutritional info
+  calories      Int?
+  protein       Float?
+  carbs         Float?
+  fat           Float?
+  
+  // Attributes
+  isVegetarian  Boolean  @default(false)
+  isSpicy       Boolean  @default(false)
+  isPopular     Boolean  @default(false)
+  isAvailable   Boolean  @default(true)
+  
+  // African cultural tags
+  origin        String?  // e.g., "Kenyan", "Nigerian", "Ethiopian"
+  cultural      Boolean  @default(false)
+  
+  // Stock management
+  stockCount    Int      @default(100)
+  
+  // ML features
+  tags          String[]
+  ingredients   String[]
+  
+  // SEO fields
+  slug          String?  @unique
+  metaTitle     String?
+  metaDescription String?
+  keywords      String[]
+  
+  // Relationships
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  reviews       Review[]
+  favorites     Favorite[]
+  
+  // Analytics
+  viewCount     Int      @default(0)
+  orderCount    Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isPopular])
+  @@index([isAvailable])
+  @@index([slug])
+}
+
+// ============================================
+// SHOPPING CART
+// ============================================
+
+model CartItem {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  
+  quantity    Int       @default(1)
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([userId, menuItemId])
+  @@index([userId])
+}
+
+// ============================================
+// ENHANCED ORDER MODEL
+// ============================================
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  
+  addressId       String
+  address         Address       @relation(fields: [addressId], references: [id])
+  
+  // Delivery Guy assignment
+  deliveryGuyId   String?
+  deliveryGuy     User?         @relation("DeliveryGuyOrders", fields: [deliveryGuyId], references: [id])
+  
+  // Order details
+  items           OrderItem[]
+  
+  subtotal        Float
+  deliveryFee     Float
+  tax             Float         @default(0)
+  discount        Float         @default(0)
+  tip             Float         @default(0)
+  total           Float
+  
+  // Status tracking
+  status          OrderStatus   @default(PENDING)
+  
+  // Payment
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus @default(PENDING)
+  transactionId   String?
+  
+  // Delivery tracking
+  estimatedTime   Int           @default(35)
+  actualDeliveryTime Int?
+  
+  // GPS coordinates
+  restaurantLat   Float?
+  restaurantLng   Float?
+  deliveryLat     Float?
+  deliveryLng     Float?
+  
+  // Special instructions
+  notes           String?
+  
+  // Rating
+  rating          Int?
+  feedback        String?
+  
+  // Timestamps for each stage
+  confirmedAt     DateTime?
+  preparingAt     DateTime?
+  readyAt         DateTime?
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([userId])
+  @@index([deliveryGuyId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String    @id @default(uuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id])
+  
+  quantity    Int
+  price       Float
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([orderId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MPESA
+  CASH
+  CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ============================================
+// REVIEW MODEL
+// ============================================
+
+model Review {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  menuItemId  String?
+  menuItem    MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  
+  rating      Int
+  comment     String?
+  
+  helpful     Int       @default(0)
+  sentiment   String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([menuItemId])
+  @@index([rating])
+}
+
+// ============================================
+// FAVORITE ITEMS
+// ============================================
+
+model Favorite {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@unique([userId, menuItemId])
+  @@index([userId])
+}
+
+// ============================================
+// ML USER INTERACTIONS
+// ============================================
+
+model UserInteraction {
+  id          String    @id @default(uuid())
+  userId      String
+  itemId      String
+  action      String
+  context     Json?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([itemId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model Analytics {
+  id              String    @id @default(uuid())
+  date            DateTime  @default(now())
+  
+  totalOrders     Int       @default(0)
+  totalRevenue    Float     @default(0)
+  avgOrderValue   Float     @default(0)
+  
+  topItems        Json?
+  peakHours       Json?
+  
+  newCustomers    Int       @default(0)
+  returningCustomers Int    @default(0)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([date])
+}
+
+// ============================================
+// SYSTEM CONFIGURATION (Super Admin only)
+// ============================================
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  
+  @@index([key])
+}
+
+

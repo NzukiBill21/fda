@@ -1,0 +1,139 @@
+// Prisma Schema - Full RBAC Implementation
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// RBAC: Roles (using String for SQLite compatibility)
+// Valid values: SUPER_ADMIN, ADMIN, SUB_ADMIN, USER, DELIVERY_GUY
+// Valid OrderStatus: PENDING, CONFIRMED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+// Valid PaymentMethod: MPESA, CASH, CARD
+
+// User Model with Security Fields
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Security fields
+  isActive      Boolean   @default(true)
+  loginAttempts Int       @default(0)
+  lockedUntil   DateTime?
+  lastLogin     DateTime?
+
+  // Relationships
+  roles              UserRole[]
+  orders             Order[]
+  deliveryOrders     Order[]              @relation("DeliveryGuy")
+  deliveryProfile    DeliveryGuyProfile?
+  activityLogs       ActivityLog[]
+}
+
+// Role Model
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  users       UserRole[]
+  createdAt   DateTime   @default(now())
+}
+
+// User-Role Junction (Many-to-Many)
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+}
+
+// Delivery Guy Profile
+model DeliveryGuyProfile {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               String   @default("offline") // online, offline, delivering
+  latitude             Float?
+  longitude            Float?
+  totalDeliveries      Int      @default(0)
+  successfulDeliveries Int      @default(0)
+  averageRating        Float?
+  totalEarnings        Float    @default(0)
+  isAvailable          Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// Menu Item
+model MenuItem {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  category    String
+  image       String?
+  rating      Float?
+  isPopular   Boolean     @default(false)
+  isSpicy     Boolean     @default(false)
+  isVegetarian Boolean    @default(false)
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+}
+
+// Order Model
+model Order {
+  id              String   @id @default(uuid())
+  orderNumber     String   @unique
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  deliveryGuyId   String?
+  deliveryGuy     User?    @relation("DeliveryGuy", fields: [deliveryGuyId], references: [id])
+  status          String   @default("PENDING")
+  total           Float
+  paymentMethod   String
+  deliveryAddress String
+  deliveryNotes   String?
+  customerName    String
+  customerPhone   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  items           OrderItem[]
+}
+
+// Order Items
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  price      Float
+  createdAt  DateTime @default(now())
+}
+
+// Activity Log (for admin tracking)
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String?
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
