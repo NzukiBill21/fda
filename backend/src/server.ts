@@ -601,9 +601,10 @@ app.post('/api/admin/users/:userId/promote', async (req, res) => {
     const { userId } = req.params;
     const { role } = req.body;
     
-    // Get the role ID
+    // Get the role ID (case-insensitive lookup)
+    const roleName = (role || 'ADMIN').toUpperCase();
     const roleRecord = await prisma.role.findFirst({
-      where: { name: role || 'Admin' }
+      where: { name: roleName }
     });
 
     if (!roleRecord) {
@@ -625,7 +626,7 @@ app.post('/api/admin/users/:userId/promote', async (req, res) => {
 
     res.json({
       success: true,
-      message: `User promoted to ${role || 'Admin'} successfully`
+      message: `User promoted to ${roleName} successfully`
     });
   } catch (error: any) {
     console.error('User promotion error:', error);

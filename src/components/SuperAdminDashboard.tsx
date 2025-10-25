@@ -200,7 +200,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       
       let body: string | undefined = undefined;
       if (action === 'promote') {
-        body = JSON.stringify({ role: 'Admin' }); // Default promotion to Admin
+        body = JSON.stringify({ role: 'ADMIN' }); // Default promotion to ADMIN (uppercase)
       }
       
       const res = await fetch(`http://localhost:5000${endpoint}`, {
