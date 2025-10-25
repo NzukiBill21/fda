@@ -1,0 +1,178 @@
+/* Mobile and Tablet Responsive Styles for Monda App */
+
+/* Base responsive utilities */
+@media (max-width: 768px) {
+  /* Super Admin Dashboard Mobile */
+  .super-admin-dashboard {
+    padding: 1rem;
+  }
+  
+  /* Stats cards - 2 columns on mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  /* System actions - 2 columns on mobile */
+  .system-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  /* Dev tools - 3 columns on mobile */
+  .dev-tools-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  /* Menu items - 2 columns on mobile */
+  .menu-items-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  /* Users table - horizontal scroll on mobile */
+  .users-table {
+    overflow-x: auto;
+  }
+  
+  /* Navigation tabs - horizontal scroll */
+  .nav-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  /* Cards padding reduction */
+  .dashboard-card {
+    padding: 1rem;
+  }
+  
+  /* Icon sizes - smaller on mobile */
+  .icon-mobile {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  /* Text sizes - smaller on mobile */
+  .text-mobile {
+    font-size: 0.875rem;
+  }
+  
+  /* Button sizes - smaller on mobile */
+  .btn-mobile {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Stats cards - 4 columns on tablet */
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* System actions - 4 columns on tablet */
+  .system-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* Dev tools - 6 columns on tablet */
+  .dev-tools-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* Menu items - 3 columns on tablet */
+  .menu-items-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  /* Single column layout for very small screens */
+  .stats-grid,
+  .system-actions-grid,
+  .dev-tools-grid,
+  .menu-items-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  /* Even smaller padding */
+  .dashboard-card {
+    padding: 0.75rem;
+  }
+  
+  /* Smaller icons */
+  .icon-mobile {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  
+  /* Smaller text */
+  .text-mobile {
+    font-size: 0.75rem;
+  }
+  
+  /* Smaller buttons */
+  .btn-mobile {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remove hover effects on touch devices */
+  .hover-effect:hover {
+    transform: none;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure crisp icons and text */
+  .crisp-text {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Adjust layout for landscape */
+  .landscape-layout {
+    flex-direction: row;
+  }
+  
+  /* Reduce vertical spacing */
+  .landscape-spacing {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  /* Hide non-essential elements when printing */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure text is readable when printed */
+  .print-text {
+    color: black !important;
+    background: white !important;
+  }
+}

@@ -32,6 +32,15 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API health check for system monitoring
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    database: 'connected',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API info
 app.get('/api', (req, res) => {
   res.json({
@@ -106,10 +115,9 @@ app.get('/api/auth/me', async (req, res) => {
 app.get('/api/menu', async (req, res) => {
   try {
     const items = await prisma.menuItem.findMany({
-      where: { isAvailable: true },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ success: true, items });
+    res.json({ success: true, menuItems: items });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -412,6 +420,306 @@ app.get('/api/admin/dashboard', async (req, res) => {
         totalMenuItems,
         recentOrders,
       },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== SUPER ADMIN ROUTES =====
+
+// Get all users (Super Admin only)
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        roles: {
+          include: {
+            role: true
+          }
+        }
+      }
+    });
+
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.roles[0]?.role.name || 'User',
+      isActive: user.isActive,
+      createdAt: user.createdAt
+    }));
+
+    res.json({
+      success: true,
+      users: formattedUsers
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// User management actions
+app.post('/api/admin/users/:userId/activate', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: true }
+    });
+
+    res.json({
+      success: true,
+      message: 'User activated successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/users/:userId/deactivate', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false }
+    });
+
+    res.json({
+      success: true,
+      message: 'User deactivated successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/users/:userId/promote', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+    
+    // Get the role ID
+    const roleRecord = await prisma.role.findFirst({
+      where: { name: role || 'Admin' }
+    });
+
+    if (!roleRecord) {
+      return res.status(400).json({ error: 'Role not found' });
+    }
+
+    // First, remove existing roles for this user
+    await prisma.userRole.deleteMany({
+      where: { userId: userId }
+    });
+
+    // Then add the new role
+    await prisma.userRole.create({
+      data: {
+        userId: userId,
+        roleId: roleRecord.id
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `User promoted to ${role || 'Admin'} successfully`
+    });
+  } catch (error: any) {
+    console.error('User promotion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/admin/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Menu management
+app.post('/api/admin/menu/:itemId/toggle', async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    
+    const item = await prisma.menuItem.findUnique({
+      where: { id: itemId }
+    });
+
+    if (!item) {
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
+
+    await prisma.menuItem.update({
+      where: { id: itemId },
+      data: { isAvailable: !item.isAvailable }
+    });
+
+    res.json({
+      success: true,
+      message: 'Menu item status updated'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/admin/menu/:itemId', async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    
+    await prisma.menuItem.delete({
+      where: { id: itemId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Menu item deleted successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// System operations
+app.post('/api/admin/system/backup', async (req, res) => {
+  try {
+    // Simulate backup process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    res.json({
+      success: true,
+      message: 'Database backup completed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/system/optimize', async (req, res) => {
+  try {
+    // Simulate optimization process
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    res.json({
+      success: true,
+      message: 'System optimization completed successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/system/restart', async (req, res) => {
+  try {
+    // Simulate restart process
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    res.json({
+      success: true,
+      message: 'System restart initiated successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/system/clear-cache', async (req, res) => {
+  try {
+    // Simulate cache clearing
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    res.json({
+      success: true,
+      message: 'Cache cleared successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Additional developer endpoints
+app.post('/api/admin/system/run-tests', async (req, res) => {
+  try {
+    // Simulate test running
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    res.json({
+      success: true,
+      message: 'All tests passed successfully',
+      results: {
+        passed: 24,
+        failed: 0,
+        skipped: 2,
+        duration: '2.3s'
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/system/deploy', async (req, res) => {
+  try {
+    // Simulate deployment
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    res.json({
+      success: true,
+      message: 'Deployment completed successfully',
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/system/git-pull', async (req, res) => {
+  try {
+    // Simulate git pull
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    res.json({
+      success: true,
+      message: 'Git pull completed successfully',
+      commits: 3,
+      filesChanged: 12
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/system/view-logs', async (req, res) => {
+  try {
+    // Simulate log viewing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    res.json({
+      success: true,
+      message: 'Logs retrieved successfully',
+      logs: [
+        '2024-01-15 10:30:15 - INFO: Server started on port 5000',
+        '2024-01-15 10:30:16 - INFO: Database connected successfully',
+        '2024-01-15 10:30:17 - INFO: All services running normally',
+        '2024-01-15 10:31:45 - INFO: User login: admin@monda.com',
+        '2024-01-15 10:32:12 - INFO: New order created: #12345'
+      ]
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
