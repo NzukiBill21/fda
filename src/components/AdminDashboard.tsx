@@ -6,6 +6,7 @@ import {
   Filter, Calendar, Truck, Target, Activity, TrendingDown, AlertCircle, Eye, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { toast } from 'sonner';
+import MenuEditor from './MenuEditor';
 
 interface AdminDashboardProps {
   token: string;
@@ -28,7 +29,8 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'analytics' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'analytics' | 'users' | 'menu'>('overview');
+  const [showMenuEditor, setShowMenuEditor] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -267,7 +269,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
 
           {/* Tabs */}
           <div className="flex gap-2 overflow-x-auto scrollbar-visible">
-            {['overview', 'orders', 'analytics', 'users'].map((tab) => (
+            {['overview', 'orders', 'analytics', 'users', 'menu'].map((tab) => (
               <motion.button
                 key={tab}
                 whileHover={{ scale: 1.02 }}
@@ -571,7 +573,48 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
           </p>
           <p className="text-yellow-100 text-sm mt-2">Monda Food Delivery System v1.0.0 | PowerBI-Level Dashboard</p>
         </motion.div>
+
+        {/* Menu Tab */}
+        {activeTab === 'menu' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-green-500/30 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <Package className="w-8 h-8 text-green-400" />
+              <h2 className="text-3xl font-bold text-white">Menu Management</h2>
+              <button
+                onClick={() => setShowMenuEditor(true)}
+                className="ml-auto px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-medium"
+              >
+                <Edit className="w-5 h-5 inline mr-2" />
+                Edit Menu
+              </button>
+            </div>
+            
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-green-400 mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-semibold text-white mb-2">Menu Management</h3>
+              <p className="text-green-200 mb-6">Manage your menu items, pricing, deals, and inventory</p>
+              <button
+                onClick={() => setShowMenuEditor(true)}
+                className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-lg"
+              >
+                Open Menu Editor
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
+
+      {/* Menu Editor Modal */}
+      {showMenuEditor && (
+        <MenuEditor
+          token={token}
+          onClose={() => setShowMenuEditor(false)}
+        />
+      )}
     </div>
   );
 }

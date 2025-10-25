@@ -914,6 +914,139 @@ app.use((req, res) => {
   });
 });
 
+// ====================
+// MENU MANAGEMENT ROUTES
+// ====================
+
+// Create menu item
+app.post('/api/admin/menu', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const {
+      name,
+      description,
+      price,
+      image,
+      category,
+      isAvailable = true,
+      isFeatured = false,
+      stock = 0,
+      prepTime = 15,
+      nutrition,
+      allergens = []
+    } = req.body;
+
+    const menuItem = await prisma.menuItem.create({
+      data: {
+        name,
+        description,
+        price: parseFloat(price),
+        image,
+        category,
+        isAvailable,
+        isFeatured,
+        stock: parseInt(stock),
+        prepTime: parseInt(prepTime),
+        nutrition: nutrition ? JSON.stringify(nutrition) : null,
+        allergens: JSON.stringify(allergens)
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Menu item created successfully',
+      menuItem
+    });
+  } catch (error: any) {
+    console.error('Menu creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update menu item
+app.put('/api/admin/menu/:id', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Parse JSON fields if they exist
+    if (updateData.nutrition) {
+      updateData.nutrition = JSON.stringify(updateData.nutrition);
+    }
+    if (updateData.allergens) {
+      updateData.allergens = JSON.stringify(updateData.allergens);
+    }
+
+    const menuItem = await prisma.menuItem.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: 'Menu item updated successfully',
+      menuItem
+    });
+  } catch (error: any) {
+    console.error('Menu update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete menu item
+app.delete('/api/admin/menu/:id', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+
+    await prisma.menuItem.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Menu item deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Menu deletion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);

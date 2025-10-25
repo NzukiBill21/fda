@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Users, ShoppingBag, Database, DollarSign, Settings, Shield, Activity, Zap, Flame, TrendingUp, Package, BarChart3, UserPlus, UserMinus, Edit, Trash2, RefreshCw, Download, Upload, Eye, Lock, Unlock, AlertTriangle, CheckCircle, Code, Terminal, Server, Cpu, HardDrive, Network, GitBranch, Bug, Monitor, Smartphone, Globe, Wifi, WifiOff, Play, Pause, Square } from 'lucide-react';
 import { toast } from 'sonner';
+import MenuEditor from './MenuEditor';
 
 interface SuperAdminDashboardProps {
   token: string;
@@ -52,6 +53,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     id: string;
     name: string;
   } | null>(null);
+  const [showMenuEditor, setShowMenuEditor] = useState(false);
   const [devTools, setDevTools] = useState({
     terminal: false,
     logs: false,
@@ -752,13 +754,22 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
             <div className="flex items-center gap-3 mb-6">
               <Package className="w-8 h-8 text-yellow-400" />
               <h2 className="text-3xl font-bold text-white">Menu Management</h2>
-              <button
-                onClick={fetchMenuItems}
-                className="ml-auto px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
-              >
-                <RefreshCw className="w-4 h-4 inline mr-2" />
-                Refresh
-              </button>
+              <div className="ml-auto flex gap-3">
+                <button
+                  onClick={() => setShowMenuEditor(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all"
+                >
+                  <Edit className="w-4 h-4 inline mr-2" />
+                  Edit Menu
+                </button>
+                <button
+                  onClick={fetchMenuItems}
+                  className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4 inline mr-2" />
+                  Refresh
+                </button>
+              </div>
             </div>
             
             {loading.menu ? (
@@ -1106,6 +1117,14 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           </motion.div>
         )}
       </div>
+
+      {/* Menu Editor Modal */}
+      {showMenuEditor && (
+        <MenuEditor
+          token={token}
+          onClose={() => setShowMenuEditor(false)}
+        />
+      )}
     </div>
   );
 }
