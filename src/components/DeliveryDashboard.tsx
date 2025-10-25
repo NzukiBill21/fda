@@ -41,10 +41,25 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
           });
         },
         (error) => {
-          console.error('Location error:', error);
-          toast.error('Could not get your location');
+          // Handle geolocation errors gracefully
+          if (error.code === 1) {
+            // User denied permission
+            console.log('Location permission denied - using default location');
+            setLocation({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+          } else {
+            console.error('Location error:', error);
+            setLocation({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
         }
       );
+    } else {
+      // Fallback to default location
+      setLocation({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
     }
 
     // Set up periodic updates

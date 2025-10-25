@@ -87,10 +87,10 @@ export function CheckoutDialog({ isOpen, onClose, total, onConfirmOrder }: Check
               </>
             )}
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            {step === 'details' && 'Enter your delivery information for order completion'}
-            {step === 'payment' && 'Select your preferred payment method'}
-            {step === 'success' && 'Your order has been successfully placed'}
+          <DialogDescription className="text-gray-600 mt-2">
+            {step === 'details' && 'Please provide your delivery information to complete your order.'}
+            {step === 'payment' && 'Choose your preferred payment method for this order.'}
+            {step === 'success' && 'Your order has been successfully placed and will be prepared shortly.'}
           </DialogDescription>
         </DialogHeader>
 
