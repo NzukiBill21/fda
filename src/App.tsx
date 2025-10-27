@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HeroSlideshow } from './components/HeroSlideshow';
 import { MenuSection, MenuItem, menuItems } from './components/MenuSection';
@@ -16,7 +16,7 @@ import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeliveryDashboard } from './components/DeliveryDashboard';
 import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -27,10 +27,9 @@ export default function App() {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
-  // Always show slideshow on first load (don't remember dismissed state)
   const [showSlideshow, setShowSlideshow] = useState(true);
   const [deliveryComplete, setDeliveryComplete] = useState(false);
-  
+
   // Authentication state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string; roles: string[] } | null>(null);
@@ -60,11 +59,63 @@ export default function App() {
     }
   }, []);
 
-  const handleLoginSuccess = (userData: any, token: string) => {
-    setUser(userData);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  const isSuperAdmin = Array.isArray(user?.roles) && (user.roles.includes('SUPER_ADMIN') || user.roles.includes('Super Admin'));
+  const isAdmin = Array.isArray(user?.roles) && (user.roles.includes('ADMIN') || user.roles.includes('Admin'));
+  const isDelivery = Array.isArray(user?.roles) && (user.roles.includes('DELIVERY_GUY') || user.roles.includes('DELIVERY') || user.roles.includes('Delivery'));
+
+  const handleAddToCart = (item: MenuItem) => {
+    setCartItems(prev => {
+      const existingItem = prev.find(cartItem => cartItem.id === item.id);
+      if (existingItem) {
+        return prev.map(cartItem =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
+        );
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
+    toast.success(`${item.name} added to cart!`);
+  };
+
+  const handleUpdateQuantity = (id: string, quantity: number) => {
+    if (quantity === 0) {
+      handleRemoveItem(id);
+    } else {
+      setCartItems(prev =>
+        prev.map(item => item.id === id ? { ...item, quantity } : item)
+      );
+    }
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleCheckout = () => {
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
+  };
+
+  const handleConfirmOrder = (details: OrderDetails) => {
+    const orderId = `ORD-${Date.now()}`;
+    setOrderId(orderId);
+    setOrderDetails(details);
+    setOrderPlaced(true);
+    setIsCheckoutOpen(false);
+    setCartItems([]);
+    toast.success('Order placed successfully!');
+  };
+
+  const handleLoginSuccess = (user: any, token: string) => {
+    setUser(user);
     setAuthToken(token);
+    setIsAuthOpen(false);
     localStorage.setItem('authToken', token);
-    toast.success(`Welcome back, ${userData.name}!`);
+    toast.success(`Welcome back, ${user.name}!`);
   };
 
   const handleLogout = () => {
@@ -74,129 +125,7 @@ export default function App() {
     toast.success('Logged out successfully');
   };
 
-  const handleAddToCart = (item: MenuItem) => {
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        toast.success(
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">✨</span>
-            <div>
-              <p className="font-semibold">Added to cart!</p>
-              <p className="text-sm text-gray-600">{item.name}</p>
-            </div>
-          </div>,
-          {
-            duration: 1500,
-            className: 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200',
-          }
-        );
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
-      }
-      toast.success(
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🎉</span>
-          <div>
-            <p className="font-semibold">{item.name}</p>
-            <p className="text-sm text-gray-600">Added to your cart</p>
-          </div>
-        </div>,
-        {
-          duration: 1500,
-          className: 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200',
-        }
-      );
-      return [...prev, { ...item, quantity: 1 }];
-    });
-  };
-
-  const handleUpdateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      handleRemoveItem(id);
-      return;
-    }
-    setCartItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
-    );
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-    toast.info(
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">🗑️</span>
-        <p>Item removed from cart</p>
-      </div>,
-      {
-        duration: 1200,
-        className: 'bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200',
-      }
-    );
-  };
-
-  const handleCheckout = () => {
-    setIsCartOpen(false);
-    setIsCheckoutOpen(true);
-  };
-
-  const handleConfirmOrder = (orderDetails: OrderDetails) => {
-    const newOrderId = `MDN${Date.now().toString().slice(-6)}`;
-    setOrderId(newOrderId);
-    setOrderDetails(orderDetails);
-    setOrderPlaced(true);
-    setCartItems([]);
-    
-    toast.success(
-      <div className="flex items-center gap-3">
-        <span className="text-3xl">💎</span>
-        <div>
-          <p className="font-bold text-lg">Order Confirmed!</p>
-          <p className="text-sm text-gray-600">Order #{newOrderId}</p>
-        </div>
-      </div>,
-      {
-        duration: 2000,
-        className: 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300',
-      }
-    );
-
-    setTimeout(() => {
-      const tracker = document.getElementById('delivery-tracker');
-      if (tracker) {
-        tracker.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 600);
-  };
-
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const total =
-    cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) +
-    (cartItems.length > 0 ? 200 : 0);
-
-  const handleSubmitReview = (rating: number, comment: string) => {
-    toast.success(
-      <div className="flex items-center gap-3">
-        <span className="text-3xl">⭐</span>
-        <div>
-          <p className="font-bold text-lg">Thank you for your review!</p>
-          <p className="text-sm text-gray-600">We appreciate your feedback</p>
-        </div>
-      </div>,
-      {
-        duration: 2000,
-        className: 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300',
-      }
-    );
-  };
-
-  // Check if user is admin and show appropriate dashboard
-  const isSuperAdmin = user?.roles.includes('SUPER_ADMIN');
-  const isAdmin = user?.roles.includes('ADMIN');
-  const isDeliveryGuy = user?.roles.includes('DELIVERY_GUY');
-  
-  // Show admin dashboards if logged in as admin
+  // Dashboard views for different user roles
   if (isSuperAdmin && authToken) {
     return (
       <div>
@@ -259,19 +188,11 @@ export default function App() {
     );
   }
 
-  if (isDeliveryGuy && authToken) {
+  if (isDelivery && authToken) {
     return (
-      <div>
-        <Header 
-          cartCount={cartCount} 
-          onCartClick={() => setIsCartOpen(true)}
-          user={user}
-          onLoginClick={() => setIsAuthOpen(true)}
-          onLogout={handleLogout}
-        />
+      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900">
         <DeliveryDashboard token={authToken} user={user} />
         <BackendStatus />
-        <RoleIndicator user={user} />
         <AuthDialog
           isOpen={isAuthOpen}
           onClose={() => setIsAuthOpen(false)}
@@ -323,30 +244,47 @@ export default function App() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="sticky top-20 z-30 flex justify-center py-4"
+            className="sticky top-16 sm:top-20 z-30 flex justify-center py-3 sm:py-4 px-4"
           >
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setShowSlideshow(true);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-red-900 font-bold shadow-2xl hover:shadow-yellow-500/50 transition-all flex items-center gap-2"
+              onClick={() => setShowSlideshow(true)}
+              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg shadow-lg hover:from-orange-600 hover:to-red-600 transition-all font-semibold mobile-sticky-btn"
             >
-              <span className="text-2xl">🔥</span>
-              <span>View Today's Special Offers</span>
+              Show Offers
             </motion.button>
           </motion.div>
         )}
-        
-        <MenuSection onAddToCart={handleAddToCart} />
-        <ReviewsSection />
-        
+
+        {/* Menu Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="py-20"
+        >
+          <div className="container mx-auto px-4 max-w-7xl">
+            <MenuSection onAddToCart={handleAddToCart} />
+          </div>
+        </motion.section>
+
+        {/* Reviews Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="py-20 bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-900"
+        >
+          <div className="container mx-auto px-4 max-w-6xl">
+            <ReviewsSection />
+          </div>
+        </motion.section>
+
+        {/* Order Tracking - shows after order is placed */}
         {orderPlaced && orderDetails && (
           <motion.section
-            id="delivery-tracker"
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="py-20 bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-900"
           >
@@ -398,8 +336,23 @@ export default function App() {
         isOpen={isReviewOpen}
         onClose={() => setIsReviewOpen(false)}
         orderId={orderId}
-        onSubmitReview={handleSubmitReview}
+        onReviewSubmit={() => {
+          setIsReviewOpen(false);
+          setOrderPlaced(false);
+          setOrderDetails(null);
+          setDeliveryComplete(false);
+          toast.success('Thank you for your review!');
+        }}
       />
+
+      <AuthDialog
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      <BackendStatus />
+      <RoleIndicator user={user} />
 
       <Toaster 
         position="top-right" 
@@ -409,19 +362,6 @@ export default function App() {
             padding: '1rem',
           },
         }}
-      />
-
-      {/* Backend Connection Indicator */}
-      <BackendStatus />
-
-      {/* Role Indicator - Shows who is logged in */}
-      <RoleIndicator user={user} />
-
-      {/* Auth Dialog */}
-      <AuthDialog
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

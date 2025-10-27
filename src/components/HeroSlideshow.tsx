@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Sparkles, X, ShoppingCart } from 'lucide-react';
 
 interface Slide {
-  id: number;
+  id: string | number;
   image: string;
   title: string;
   description: string;
@@ -18,7 +18,7 @@ interface HeroSlideshowProps {
   onDismiss: () => void;
 }
 
-const slides: Slide[] = [
+const defaultSlides: Slide[] = [
   {
     id: 1,
     image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=2400&h=1600&fit=crop&q=90&auto=format',
@@ -60,6 +60,47 @@ const slides: Slide[] = [
 export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlideshowProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [slides, setSlides] = useState<Slide[]>(defaultSlides);
+
+  // Fetch menu items from API to reflect real-time updates
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/menu');
+        const data = await res.json();
+        
+        if (data.success && data.menuItems && data.menuItems.length > 0) {
+          // Use API menu items, preferably featured items or first 4 items
+          const featuredItems = data.menuItems.filter((item: any) => item.isFeatured);
+          const itemsToUse = featuredItems.length > 0 ? featuredItems : data.menuItems.slice(0, 4);
+          
+          const slidesFromAPI = itemsToUse.map((item: any) => ({
+            id: item.id,
+            image: item.image,
+            title: item.name,
+            description: item.description,
+            price: `KSh ${item.price.toLocaleString()}`,
+            priceValue: item.price,
+            emoji: '⭐',
+          }));
+          
+          if (slidesFromAPI.length > 0) {
+            setSlides(slidesFromAPI);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch menu items for slideshow:', error);
+        // Keep using default slides if API fails
+      }
+    };
+
+    fetchMenuItems();
+    
+    // Refresh every 30 seconds to catch updates
+    const interval = setInterval(fetchMenuItems, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -122,16 +163,26 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
   };
 
   return (
-    <div className="relative min-h-[85vh] sm:min-h-[80vh] lg:h-[90vh] w-full overflow-hidden bg-gradient-to-br from-red-950 via-red-900 to-yellow-900">
-      {/* Dismiss Button */}
+    <div className="relative min-h-[100vh] sm:min-h-[85vh] lg:h-[90vh] w-full overflow-hidden bg-gradient-to-br from-red-950 via-red-900 to-yellow-900 hero-slideshow-mobile">
+      {/* Dismiss Button - More prominent on mobile */}
       <motion.button
         whileHover={{ scale: 1.1, rotate: 90 }}
         whileTap={{ scale: 0.9 }}
         onClick={onDismiss}
-        className="absolute top-3 right-3 sm:top-6 sm:right-6 z-50 p-2 sm:p-3 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white/30 transition-all shadow-2xl"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-3 sm:p-3 rounded-full bg-red-600/80 backdrop-blur-md border-2 border-white/50 text-white hover:bg-red-700/80 transition-all shadow-2xl mobile-dismiss-btn"
       >
-        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+        <X className="w-6 h-6 sm:w-6 sm:h-6" />
       </motion.button>
+      
+      {/* Mobile-specific dismiss hint */}
+      <div className="absolute top-4 left-4 z-50 sm:hidden">
+        <div className="px-3 py-2 rounded-lg bg-black/30 backdrop-blur-md border border-white/30 text-white text-xs">
+          <span className="flex items-center gap-1">
+            <span>👆</span>
+            Tap X to dismiss
+          </span>
+        </div>
+      </div>
 
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
@@ -173,8 +224,8 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
           }}
           className="absolute inset-0"
         >
-          <div className="container mx-auto px-3 sm:px-6 h-full flex items-center py-4 sm:py-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-12 items-center w-full">
+          <div className="container mx-auto px-4 sm:px-6 h-full flex items-center py-8 sm:py-8 mobile-content-spacing">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-8 lg:gap-12 items-center w-full">
               {/* Content */}
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
@@ -192,11 +243,11 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                   <span className="text-xs sm:text-sm tracking-wide font-semibold">FRESH DAILY SPECIALS</span>
                 </motion.div>
 
-                <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl mb-2 sm:mb-4 text-white drop-shadow-2xl leading-tight tracking-tight font-extrabold">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl mb-3 sm:mb-4 text-white drop-shadow-2xl leading-tight tracking-tight font-extrabold">
                   {slides[currentSlide].title}
                 </h1>
 
-                <p className="text-xs sm:text-lg md:text-xl lg:text-2xl text-yellow-100 mb-3 sm:mb-6 drop-shadow-lg leading-relaxed">
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl text-yellow-100 mb-4 sm:mb-6 drop-shadow-lg leading-relaxed">
                   {slides[currentSlide].description}
                 </p>
 
@@ -215,24 +266,24 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                   </motion.div>
                 </div>
 
-                <div className="flex gap-2 sm:gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleOrderNow}
-                    className="px-5 py-2.5 sm:px-10 sm:py-5 rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-red-900 shadow-2xl hover:shadow-yellow-500/50 transition-all duration-300 text-sm sm:text-xl flex items-center gap-2 sm:gap-3 font-bold"
+                    className="w-full sm:w-auto px-6 py-4 sm:px-10 sm:py-5 rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-red-900 shadow-2xl hover:shadow-yellow-500/50 transition-all duration-300 text-lg sm:text-xl flex items-center justify-center gap-3 font-bold mobile-full-width-btn"
                   >
-                    <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6" />
-                    <span className="whitespace-nowrap">Order This Deal</span>
+                    <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <span>🛒 Order This Deal</span>
                   </motion.button>
                   
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="px-5 py-2.5 sm:px-10 sm:py-5 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30 text-white shadow-2xl hover:bg-white/30 transition-all duration-300 text-sm sm:text-xl font-bold whitespace-nowrap"
+                    className="w-full sm:w-auto px-6 py-4 sm:px-10 sm:py-5 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30 text-white shadow-2xl hover:bg-white/30 transition-all duration-300 text-lg sm:text-xl font-bold mobile-full-width-btn"
                   >
-                    Browse Menu
+                    📋 Browse Menu
                   </motion.button>
                 </div>
               </motion.div>
@@ -242,7 +293,7 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
-                className="relative order-1 lg:order-2 h-[35vh] sm:h-[45vh] lg:h-auto"
+                className="relative order-1 lg:order-2 h-[40vh] sm:h-[45vh] lg:h-auto mobile-image-container"
               >
                 <div className="relative w-full h-full rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl border-2 sm:border-4 lg:border-8 border-white/10">
                   <img

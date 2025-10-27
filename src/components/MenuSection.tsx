@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Star, Heart, Flame, Leaf } from 'lucide-react';
 import { Badge } from './ui/badge';
@@ -215,13 +215,78 @@ export const menuItems: MenuItem[] = [
 export function MenuSection({ onAddToCart }: MenuSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [currentMenuItems, setCurrentMenuItems] = useState<MenuItem[]>(menuItems);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = ['All', 'African Specials', 'Premium', ...Array.from(new Set(menuItems.filter(i => i.category !== 'Premium' && i.category !== 'African Specials').map((item) => item.category)))];
+  // Fetch menu items from backend
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/menu');
+        const data = await res.json();
+        if (data.success && data.menuItems) {
+          const mappedItems = data.menuItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description || '',
+            price: item.price,
+            image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85',
+            category: item.category,
+            rating: item.rating || 4.5,
+            reviews: 0,
+            popular: item.isFeatured,
+            spicy: false,
+            vegetarian: item.isVegetarian || false
+          }));
+          // Merge with existing items to avoid duplicates
+          setCurrentMenuItems(prevItems => {
+            const existingIds = new Set(prevItems.map(i => i.id));
+            const newItems = mappedItems.filter((item: any) => !existingIds.has(item.id));
+            return [...prevItems, ...newItems];
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch menu items:', error);
+      }
+    };
 
-  const filteredItems =
-    selectedCategory === 'All'
-      ? menuItems
-      : menuItems.filter((item) => item.category === selectedCategory);
+    fetchMenuItems();
+    
+    // Also listen for menu updates from MenuEditor
+    const handleMenuUpdate = (event: CustomEvent) => {
+      console.log('Menu updated!', event.detail.menuItems.length, 'items');
+      setCurrentMenuItems(event.detail.menuItems);
+    };
+
+    window.addEventListener('menuItemsUpdated', handleMenuUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('menuItemsUpdated', handleMenuUpdate as EventListener);
+    };
+  }, []);
+
+  const categories = ['All', 'African Specials', 'Premium', ...Array.from(new Set(currentMenuItems.filter(i => i.category !== 'Premium' && i.category !== 'African Specials').map((item) => item.category)))];
+
+  const filteredItems = (() => {
+    let filtered = currentMenuItems;
+    
+    // Filter by category
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter((item) => item.category === selectedCategory);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter((item) => 
+        item.name.toLowerCase().includes(lowerSearchTerm) ||
+        item.description.toLowerCase().includes(lowerSearchTerm) ||
+        item.category.toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+    
+    return filtered;
+  })();
 
   const handleAddToCart = (item: MenuItem, event: React.MouseEvent) => {
     onAddToCart(item);
@@ -330,19 +395,35 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
         </motion.div>
 
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+          {/* Search Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <input
+              type="text"
+              placeholder="🔍 Search for food, drinks, or categories..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full max-w-2xl mx-auto px-6 py-4 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border-2 border-white/60 focus:border-red-500 focus:outline-none text-lg font-semibold text-gray-900 placeholder-gray-400"
+            />
+          </motion.div>
+
           <div className="flex justify-center mb-10 lg:mb-14 w-full">
             <div className="overflow-x-scroll overflow-y-hidden w-full md:w-auto scrollbar-visible px-4">
               <TabsList className="inline-flex flex-nowrap p-2 rounded-2xl bg-white/90 backdrop-blur-xl shadow-2xl border-2 border-gray-200/50 gap-2 min-w-max mx-auto">
-                {categories.map((category) => (
-                  <TabsTrigger
-                    key={category}
-                    value={category}
+              {categories.map((category) => (
+                <TabsTrigger
+                  key={category}
+                  value={category}
                     className="px-4 sm:px-6 lg:px-8 py-3 rounded-xl whitespace-nowrap text-sm sm:text-base font-bold data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-yellow-500 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all duration-300 hover:bg-gray-100"
-                  >
-                    {category}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+                >
+                  {category}
+                </TabsTrigger>
+              ))}
+            </TabsList>
             </div>
           </div>
 

@@ -18,8 +18,8 @@ app.use(helmet());
 app.use(cors());
 app.use(compression());
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -399,13 +399,15 @@ app.post('/api/delivery/status', async (req, res) => {
       update: {
         status,
         latitude: latitude || null,
-        longitude: longitude || null
+        longitude: longitude || null,
+        updatedAt: new Date()
       },
       create: {
         userId: decoded.userId,
-        status,
+        status: status || 'offline',
         latitude: latitude || null,
-        longitude: longitude || null
+        longitude: longitude || null,
+        updatedAt: new Date()
       }
     });
 
@@ -474,6 +476,81 @@ app.post('/api/delivery/complete/:orderId', async (req, res) => {
   }
 });
 
+// Get delivery profile
+app.get('/api/delivery/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('DELIVERY_GUY')) {
+      return res.status(403).json({ error: 'Delivery guy access required' });
+    }
+
+    const profile = await prisma.deliveryGuyProfile.findUnique({
+      where: { userId: decoded.userId }
+    });
+
+    res.json({ success: true, profile });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update delivery profile
+app.put('/api/delivery/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('DELIVERY_GUY')) {
+      return res.status(403).json({ error: 'Delivery guy access required' });
+    }
+
+    const profileData = req.body;
+
+    // Update User fields (name, phone, etc.)
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: {
+        name: profileData.name,
+        phone: profileData.phone
+      }
+    });
+
+    // Update DeliveryGuyProfile fields
+    const allowedFields = {
+      status: profileData.status,
+      latitude: profileData.latitude,
+      longitude: profileData.longitude,
+      isAvailable: profileData.isAvailable
+    };
+
+    const profile = await prisma.deliveryGuyProfile.upsert({
+      where: { userId: decoded.userId },
+      update: allowedFields,
+      create: {
+        userId: decoded.userId,
+        ...allowedFields
+      }
+    });
+
+    res.json({ success: true, profile });
+  } catch (error: any) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ====================
 // ADMIN ROUTES
 // ====================
@@ -494,7 +571,7 @@ app.get('/api/admin/dashboard', async (req, res) => {
     }
 
     // Get dashboard stats
-    const [totalOrders, totalUsers, totalMenuItems, recentOrders] = await Promise.all([
+    const [totalOrders, totalUsers, totalMenuItems, recentOrders, onlineDrivers] = await Promise.all([
       prisma.order.count(),
       prisma.user.count(),
       prisma.menuItem.count(),
@@ -510,6 +587,17 @@ app.get('/api/admin/dashboard', async (req, res) => {
           },
         },
       }),
+      prisma.deliveryGuyProfile.findMany({
+        where: { status: 'online' },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            }
+          }
+        }
+      })
     ]);
 
     res.json({
@@ -519,6 +607,7 @@ app.get('/api/admin/dashboard', async (req, res) => {
         totalUsers,
         totalMenuItems,
         recentOrders,
+        onlineDrivers,
       },
     });
   } catch (error: any) {
@@ -537,17 +626,19 @@ app.get('/api/admin/users', async (req, res) => {
           include: {
             role: true
           }
-        }
+        },
+        deliveryProfile: true
       }
     });
 
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user: any) => ({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.roles[0]?.role.name || 'User',
       isActive: user.isActive,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      isOnline: user.deliveryProfile?.status === 'online' || false
     }));
 
     res.json({
@@ -906,14 +997,6 @@ app.post('/api/admin/system/view-logs', async (req, res) => {
   }
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.path
-  });
-});
-
 // ====================
 // MENU MANAGEMENT ROUTES
 // ====================
@@ -992,6 +1075,18 @@ app.put('/api/admin/menu/:id', async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // First check if the item exists
+    const existingItem = await prisma.menuItem.findUnique({
+      where: { id }
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ 
+        success: false,
+        error: `Menu item with id "${id}" not found` 
+      });
+    }
+
     // Parse JSON fields if they exist
     if (updateData.nutrition) {
       updateData.nutrition = JSON.stringify(updateData.nutrition);
@@ -1045,6 +1140,14 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
     console.error('Menu deletion error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.path
+  });
 });
 
 // Error handler

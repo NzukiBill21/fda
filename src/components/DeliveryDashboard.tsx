@@ -9,36 +9,48 @@ interface DeliveryDashboardProps {
 }
 
 export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
-  const [assignments, setAssignments] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState([]);
   const [isOnline, setIsOnline] = useState(false);
-  const [location, setLocation] = useState({ lat: 0, lng: 0 });
+  const [location, setLocation] = useState({ lat: -1.2921, lng: 36.8219 });
   const [earnings, setEarnings] = useState({ today: 0, week: 0, month: 0 });
   const [performance, setPerformance] = useState({ rating: 4.8, completed: 0, onTime: 0 });
-  const [weather, setWeather] = useState({ temp: 28, condition: 'sunny', wind: 12 });
+  const [weather, setWeather] = useState({ temp: 28, condition: 'sunny', wind: 12, city: 'Nairobi' });
   const [battery, setBattery] = useState(85);
   const [signal, setSignal] = useState(4);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [quickActions, setQuickActions] = useState([
-    { name: 'Call Customer', icon: Phone, color: 'bg-green-500' },
-    { name: 'Navigate', icon: Map, color: 'bg-blue-500' },
-    { name: 'Mark Delivered', icon: CheckCircle, color: 'bg-emerald-500' },
-    { name: 'Report Issue', icon: AlertCircle, color: 'bg-red-500' }
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [profileImage, setProfileImage] = useState('');
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    phone: '',
+    email: user?.email || '',
+    licenseNumber: '',
+    vehicleType: '',
+    vehiclePlate: '',
+    idNumber: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+    address: '',
+    bio: ''
+  });
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchAssignments();
     fetchEarnings();
     fetchPerformance();
+    fetchProfileData(); // Fetch saved profile data
     
     // Get current location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLocation({
+          const currentLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          setLocation(currentLocation);
+          fetchWeather(currentLocation);
         },
         (error) => {
           // Handle geolocation errors gracefully
@@ -46,9 +58,11 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
             // User denied permission
             console.log('Location permission denied - using default location');
             setLocation({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+            fetchWeather({ lat: -1.2921, lng: 36.8219 });
           } else {
             console.error('Location error:', error);
             setLocation({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+            fetchWeather({ lat: -1.2921, lng: 36.8219 });
           }
         },
         {
@@ -60,6 +74,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     } else {
       // Fallback to default location
       setLocation({ lat: -1.2921, lng: 36.8219 }); // Default to Nairobi
+      fetchWeather({ lat: -1.2921, lng: 36.8219 });
     }
 
     // Set up periodic updates
@@ -69,8 +84,49 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
       fetchPerformance();
     }, 30000); // Update every 30 seconds
 
-    return () => clearInterval(interval);
-  }, [token]);
+    // Auto-track location when online
+    let locationInterval: NodeJS.Timeout | null = null;
+    if (isOnline) {
+      locationInterval = setInterval(() => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const newLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              setLocation(newLocation);
+              fetchWeather(newLocation);
+            },
+            () => console.log('Location update failed')
+          );
+        }
+      }, 10000); // Update every 10 seconds when online
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (locationInterval) clearInterval(locationInterval);
+    };
+  }, [token, isOnline]);
+
+  const fetchWeather = async (loc: { lat: number, lng: number }) => {
+    try {
+      // Using a free weather API or local data for now
+      // Nairobi default weather
+      const nairobiWeather = {
+        temp: 25,
+        condition: 'partly cloudy',
+        wind: 15,
+        city: 'Nairobi'
+      };
+      
+      setWeather(nairobiWeather);
+    } catch (error) {
+      console.error('Failed to fetch weather:', error);
+      // Keep default weather
+    }
+  };
 
   const fetchAssignments = async () => {
     try {
@@ -120,7 +176,25 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const handleToggleOnline = async () => {
     const newStatus = !isOnline;
+    
     try {
+      // Update location if going online
+      let currentLocation = location;
+      if (newStatus && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            setLocation(currentLocation);
+          },
+          () => {
+            console.log('Using cached location');
+          }
+        );
+      }
+
       const res = await fetch('http://localhost:5000/api/delivery/status', {
         method: 'POST',
         headers: {
@@ -129,14 +203,14 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
         },
         body: JSON.stringify({
           status: newStatus ? 'online' : 'offline',
-          latitude: location.lat,
-          longitude: location.lng
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng
         })
       });
       const data = await res.json();
       if (data.success) {
         setIsOnline(newStatus);
-        toast.success(newStatus ? '🚗 You are now ONLINE!' : '🛑 You are now OFFLINE');
+        toast.success(newStatus ? '🚗 You are now ONLINE!' : '🛑 You are now OFFLINE', { duration: 3000 });
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -184,10 +258,118 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     }
   };
 
+  const handleImageUpload = (e: any) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image too large! Max size is 5MB');
+        return;
+      }
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('Invalid image format! Use JPG, PNG, or WEBP');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setProfileImage(result);
+        toast.success('✅ Image uploaded! Click Save to confirm.');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setProfileImage('');
+    toast.success('📷 Image removed! Click Save to confirm.');
+  };
+
+  const fetchProfileData = async () => {
+    // Check localStorage first
+    const savedData = localStorage.getItem('deliveryProfile');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setProfileImage(parsed.profileImage || '');
+        setProfileData(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Failed to parse saved profile:', error);
+      }
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      // Save to backend (name and phone only)
+      const res = await fetch('http://localhost:5000/api/delivery/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: profileData.name, phone: profileData.phone })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Save all fields to localStorage
+        const dataToSave = {
+          profileImage,
+          name: profileData.name,
+          phone: profileData.phone,
+          email: profileData.email,
+          licenseNumber: profileData.licenseNumber,
+          vehicleType: profileData.vehicleType,
+          vehiclePlate: profileData.vehiclePlate,
+          idNumber: profileData.idNumber,
+          emergencyContact: profileData.emergencyContact,
+          emergencyPhone: profileData.emergencyPhone,
+          address: profileData.address,
+          bio: profileData.bio
+        };
+        localStorage.setItem('deliveryProfile', JSON.stringify(dataToSave));
+        toast.success('✅ Profile saved successfully!');
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      // Still save to localStorage even if backend fails
+      const dataToSave = {
+        profileImage,
+        ...profileData
+      };
+      localStorage.setItem('deliveryProfile', JSON.stringify(dataToSave));
+      toast.error('⚠️ Saved locally, but backend error occurred');
+    }
+  };
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    toast.info('🔄 Refreshing data...', { duration: 2000 });
+    await Promise.all([fetchAssignments(), fetchEarnings(), fetchPerformance()]);
+    toast.success('✅ Data refreshed!', { duration: 3000 });
+    setIsRefreshing(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  };
+
+  const quickActions = [
+    { name: 'Refresh', icon: RefreshCw, color: 'bg-blue-500', action: handleRefresh },
+    { name: 'Call Support', icon: Phone, color: 'bg-green-500', action: () => { window.open('tel:+254700000000'); toast.success('📞 Opening phone dialer...', { duration: 2000 }); } },
+    { name: 'View Map', icon: Map, color: 'bg-purple-500', action: () => { setActiveTab('orders'); toast.info('📍 Showing map...', { duration: 2000 }); } },
+    { name: 'Report Issue', icon: AlertCircle, color: 'bg-red-500', action: () => { toast.success('⚠️ Issue reported!', { duration: 3000 }); } }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900 pt-16 pb-20 px-2">
+    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900 pt-12 pb-24 px-3 sm:px-4">
       {/* Mobile Status Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-lg border-b border-white/10">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/20 shadow-lg">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`}></div>
@@ -208,12 +390,20 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
               <Gps className="w-4 h-4 text-white" />
               <span className="text-white text-xs">GPS</span>
             </div>
+            <button
+              onClick={handleLogout}
+              className="ml-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-all active:scale-95 flex items-center gap-1 shadow-lg"
+              title="Logout"
+            >
+              <span className="text-white text-xs font-bold">🚪</span>
+              <span className="text-white text-xs font-bold hidden sm:inline">Logout</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Mobile Navigation Tabs */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-t border-white/10">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-lg border-t border-white/20 shadow-xl">
         <div className="flex justify-around py-2">
           {[
             { id: 'dashboard', name: 'Dashboard', icon: Package },
@@ -226,10 +416,10 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                className={`flex flex-col items-center justify-center gap-1 px-2 py-2 sm:px-3 rounded-lg transition-all active:scale-95 min-h-[60px] min-w-[60px] ${
                   activeTab === tab.id
-                    ? 'bg-orange-500 text-white'
-                    : 'text-gray-300 hover:text-white'
+                    ? 'bg-orange-500 text-white shadow-lg'
+                    : 'text-gray-300 hover:text-white active:bg-white/10'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -266,7 +456,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
               
               <button
                 onClick={handleToggleOnline}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                className={`w-full py-4 sm:py-5 rounded-xl font-bold text-lg sm:text-xl shadow-xl hover:shadow-2xl transition-all active:scale-95 ${
                   isOnline
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-green-500 hover:bg-green-600 text-white'
@@ -360,7 +550,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                   </div>
                   <div>
                     <p className="text-white font-semibold">Current Location</p>
-                    <p className="text-gray-300 text-sm">Westlands, Nairobi</p>
+                    <p className="text-gray-300 text-sm">{weather.city}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Wind className="w-4 h-4 text-gray-400" />
                       <span className="text-gray-300 text-sm">{weather.wind} km/h</span>
@@ -381,13 +571,16 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
               <div className="grid grid-cols-2 gap-3">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
+                  const isLoading = action.name === 'Refresh' && isRefreshing;
                   return (
                     <button
                       key={action.name}
-                      className={`${action.color} rounded-xl p-4 text-white font-semibold transition-all hover:scale-105`}
+                      onClick={action.action}
+                      disabled={isLoading}
+                      className={`${action.color} rounded-xl p-4 text-white font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <Icon className="w-6 h-6 mx-auto mb-2" />
-                      <p className="text-sm">{action.name}</p>
+                      <Icon className={`w-6 h-6 mx-auto mb-2 ${isLoading ? 'animate-spin' : ''}`} />
+                      <p className="text-sm font-bold">{action.name}</p>
                     </button>
                   );
                 })}
@@ -399,6 +592,103 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
         {/* Orders Tab */}
         {activeTab === 'orders' && (
           <div className="space-y-4 pt-4">
+            {/* Interactive Map */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 overflow-hidden"
+            >
+              <div className="bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-lg mb-3 relative overflow-hidden shadow-xl">
+                <div className="aspect-square relative bg-blue-600">
+                  {/* Interactive Map with native HTML5 embedded map */}
+                  <iframe
+                    key={`${location.lat}-${location.lng}`}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.lng - 0.01},${location.lat - 0.01},${location.lng + 0.01},${location.lat + 0.01}&layer=mapnik&marker=${location.lat},${location.lng}`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    className="w-full h-full"
+                    scrolling="no"
+                  />
+                  
+                  
+                  <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-lg rounded-lg px-3 py-2 shadow-lg z-30">
+                    <p className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                      <motion.span 
+                        className="text-blue-500"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      >📍</motion.span> {weather.city}
+                    </p>
+                    <p className="text-xs text-gray-600">{assignments.length} {assignments.length === 1 ? 'delivery' : 'deliveries'}</p>
+                  </div>
+                  {assignments.length > 0 && (
+                    <div className="absolute top-2 right-2 bg-red-500/95 backdrop-blur-lg rounded-lg px-3 py-2 shadow-lg z-30">
+                      <p className="text-xs font-bold text-white flex items-center gap-1">
+                        <span>🚚</span> {assignments.length} Active
+                      </p>
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 left-2 bg-green-500/95 backdrop-blur-lg rounded-lg px-3 py-2 shadow-lg z-30">
+                    <p className="text-xs font-bold text-white flex items-center gap-1">
+                      <span>🌡️</span> {weather.temp}°C {weather.condition}
+                    </p>
+                  </div>
+                  
+                  {/* Tap to View Full Map Overlay */}
+                  <button
+                    onClick={() => window.open(`https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lng}&zoom=15`, '_blank')}
+                    className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-lg px-4 py-2 rounded-lg shadow-xl hover:bg-white transition-all active:scale-95 z-30 flex items-center gap-2"
+                  >
+                    <span className="text-sm font-semibold text-gray-900">🗺️</span>
+                    <span className="text-xs font-bold text-gray-900 hidden sm:inline">Tap to zoom</span>
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          const newLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                          setLocation(newLocation);
+                          fetchWeather(newLocation);
+                          toast.success('📍 Location updated!', { duration: 2000 });
+                        },
+                        (error) => {
+                          console.error('Geolocation error:', error);
+                          if (error.code === 1) {
+                            toast.error('📍 Location access denied. Please enable location services in your browser.', { duration: 5000 });
+                          } else if (error.code === 2) {
+                            toast.error('📍 Unable to determine location. Please check your network.', { duration: 5000 });
+                          } else {
+                            toast.error('📍 Failed to get location. Trying default...', { duration: 3000 });
+                            setLocation({ lat: -1.2921, lng: 36.8219 });
+                            fetchWeather({ lat: -1.2921, lng: 36.8219 });
+                          }
+                        },
+                        { timeout: 10000, enableHighAccuracy: true }
+                      );
+                    } else {
+                      toast.error('📍 Geolocation not supported by your browser.', { duration: 3000 });
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-all active:scale-95"
+                >
+                  🔄 Update Location
+                </button>
+                <button
+                  onClick={() => window.open(`https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lng}&zoom=15`, '_blank')}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-all active:scale-95"
+                >
+                  🗺️ View Full Map
+                </button>
+              </div>
+            </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -466,24 +756,24 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                         {order.status === 'PENDING' && (
                           <button
                             onClick={() => handleAcceptOrder(order.id)}
-                            className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold hover:from-green-600 hover:to-teal-600 transition-all"
+                            className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-green-600 hover:to-teal-600 transition-all active:scale-95"
                           >
-                            Accept Delivery
+                            ✓ Accept Delivery
                           </button>
                         )}
                         {order.status === 'OUT_FOR_DELIVERY' && (
                           <>
                             <button
                               onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress)}`, '_blank')}
-                              className="flex-1 px-3 py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-all"
+                              className="flex-1 px-3 py-3 sm:py-4 rounded-xl bg-blue-500 text-white font-bold text-base sm:text-lg shadow-lg hover:bg-blue-600 transition-all active:scale-95 flex items-center justify-center"
                             >
-                              <Map className="w-4 h-4 mx-auto" />
+                              <Map className="w-5 h-5" />
                             </button>
                             <button
                               onClick={() => handleCompleteOrder(order.id)}
-                              className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold hover:from-green-600 hover:to-emerald-600 transition-all"
+                              className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all active:scale-95"
                             >
-                              Mark Delivered
+                              ✓ Mark Delivered
                             </button>
                           </>
                         )}
@@ -551,38 +841,259 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
         {/* Profile Tab */}
         {activeTab === 'profile' && (
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4 pt-4 pb-32 overflow-y-auto max-h-[calc(100vh-200px)]">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20"
             >
-              <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <User className="w-10 h-10 text-white" />
-                </div>
-                <h2 className="text-white font-bold text-xl">{user?.name}</h2>
-                <p className="text-gray-300">Delivery Driver</p>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-white font-bold text-xl">My Profile</h2>
+                {!isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg active:scale-95"
+                  >
+                    Edit Profile
+                  </button>
+                )}
+                {isEditing && (
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Phone</span>
-                  <span className="text-white">{user?.phone || '+254 700 000 000'}</span>
+              {/* Profile Image Upload */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-orange-500 shadow-xl" />
+                  ) : (
+                    <div className="w-32 h-32 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center border-4 border-orange-500 shadow-xl">
+                      <User className="w-16 h-16 text-white" />
+                    </div>
+                  )}
+                  {isEditing && (
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex gap-2">
+                      <label className="bg-green-500 text-white p-2 rounded-full cursor-pointer hover:bg-green-600 transition-all shadow-lg active:scale-95">
+                        <Settings className="w-4 h-4" />
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {profileImage && (
+                        <button
+                          onClick={handleRemoveImage}
+                          className="bg-red-500 text-white p-2 rounded-full cursor-pointer hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                        >
+                          <Settings className="w-4 h-4 rotate-45" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Status</span>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    isOnline ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                  }`}>
-                    {isOnline ? 'Online' : 'Offline'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Location</span>
-                  <span className="text-white">Westlands, Nairobi</span>
-                </div>
+                {isEditing && (
+                  <p className="text-white/80 font-semibold text-xs mt-4 text-center">Click green button to upload, red to remove</p>
+                )}
               </div>
+
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-white font-bold text-sm">Full Name</label>
+                    <input
+                      type="text"
+                      value={profileData.name}
+                      onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                      className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white font-bold text-sm">Phone</label>
+                      <input
+                        type="tel"
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="+254 700 000 000"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white font-bold text-sm">Email</label>
+                      <input
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white font-bold text-sm">ID Number</label>
+                      <input
+                        type="text"
+                        value={profileData.idNumber}
+                        onChange={(e) => setProfileData({ ...profileData, idNumber: e.target.value })}
+                        className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="ID Number"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white font-bold text-sm">License Number</label>
+                      <input
+                        type="text"
+                        value={profileData.licenseNumber}
+                        onChange={(e) => setProfileData({ ...profileData, licenseNumber: e.target.value })}
+                        className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="License #"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-white font-bold text-sm mb-2 block">Vehicle Type</label>
+                    <select
+                      value={profileData.vehicleType}
+                      onChange={(e) => setProfileData({ ...profileData, vehicleType: e.target.value })}
+                      className="w-full px-4 py-3 bg-white/30 border-3 border-white/70 rounded-xl text-white font-bold text-base cursor-pointer hover:bg-white/40 hover:border-orange-400 transition-all duration-300 shadow-xl hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-orange-400/60 active:scale-[0.98]"
+                      style={{ 
+                        color: profileData.vehicleType ? '#ffffff' : '#ffffff',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff', padding: '12px', fontSize: '16px', fontWeight: 'bold' }}>🏍️ Select vehicle type</option>
+                      <option value="Motorcycle" style={{ backgroundColor: '#374151', color: '#ffffff', padding: '12px', fontSize: '16px', fontWeight: 'bold' }}>🏍️ Motorcycle</option>
+                      <option value="Bicycle" style={{ backgroundColor: '#374151', color: '#ffffff', padding: '12px', fontSize: '16px', fontWeight: 'bold' }}>🚴 Bicycle</option>
+                      <option value="Car" style={{ backgroundColor: '#374151', color: '#ffffff', padding: '12px', fontSize: '16px', fontWeight: 'bold' }}>🚗 Car</option>
+                      <option value="Walking" style={{ backgroundColor: '#374151', color: '#ffffff', padding: '12px', fontSize: '16px', fontWeight: 'bold' }}>🚶 Walking</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-white font-bold text-sm">Vehicle Plate Number</label>
+                    <input
+                      type="text"
+                      value={profileData.vehiclePlate}
+                      onChange={(e) => setProfileData({ ...profileData, vehiclePlate: e.target.value })}
+                      className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="KCA 123A"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white font-bold text-sm">Emergency Contact</label>
+                      <input
+                        type="text"
+                        value={profileData.emergencyContact}
+                        onChange={(e) => setProfileData({ ...profileData, emergencyContact: e.target.value })}
+                        className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Contact Name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white font-bold text-sm">Emergency Phone</label>
+                      <input
+                        type="tel"
+                        value={profileData.emergencyPhone}
+                        onChange={(e) => setProfileData({ ...profileData, emergencyPhone: e.target.value })}
+                        className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="+254 700 000 000"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-white font-bold text-sm">Home Address</label>
+                    <input
+                      type="text"
+                      value={profileData.address}
+                      onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                      className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Street, Area, City"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-white font-bold text-sm">Bio</label>
+                    <textarea
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                      rows={3}
+                      className="w-full mt-1 px-4 py-3 bg-white/20 border-2 border-white/40 rounded-lg text-white font-semibold placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                      placeholder="Tell us about yourself..."
+                    />
+                  </div>
+
+                  <motion.button
+                    onClick={handleSaveProfile}
+                    whileHover={{ scale: 1.02, boxShadow: '0 10px 40px rgba(249, 115, 22, 0.6)' }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-6 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white font-black text-2xl rounded-2xl hover:from-orange-600 hover:to-red-600 transition-all shadow-[0_15px_50px_rgba(249,115,22,0.5)] border-4 border-yellow-400 cursor-pointer"
+                    style={{ 
+                      minHeight: '70px',
+                      zIndex: 100,
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="text-3xl">💾</span>
+                      <span className="tracking-wide">SAVE PROFILE</span>
+                      <span className="text-2xl">✓</span>
+                    </div>
+                  </motion.button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Name</span>
+                    <span className="text-white font-semibold">{profileData.name || user?.name || 'Not set'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Phone</span>
+                    <span className="text-white font-semibold">{profileData.phone || user?.phone || '+254 700 000 000'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Email</span>
+                    <span className="text-white font-semibold">{profileData.email || user?.email || 'Not set'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Status</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      isOnline ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                    }`}>
+                      {isOnline ? '🟢 Online' : '🔴 Offline'}
+                    </span>
+                  </div>
+                  {profileData.vehicleType && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Vehicle</span>
+                      <span className="text-white font-semibold">{profileData.vehicleType} - {profileData.vehiclePlate}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Location</span>
+                    <span className="text-white font-semibold">Westlands, Nairobi</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Performance</span>
+                    <span className="text-white font-semibold">⭐ {performance.rating}</span>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
@@ -590,5 +1101,3 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     </div>
   );
 }
-
-

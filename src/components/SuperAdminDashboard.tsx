@@ -15,6 +15,7 @@ interface User {
   role: string;
   isActive: boolean;
   createdAt: string;
+  isOnline?: boolean;
 }
 
 interface MenuItem {
@@ -33,9 +34,10 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     totalRevenue: 0,
     deliveryGuys: 0,
   });
-  const [activityLogs, setActivityLogs] = useState<any[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [deliveryGuys, setDeliveryGuys] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [systemStatus, setSystemStatus] = useState({
     database: 'online',
     api: 'online',
@@ -48,11 +50,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     menu: false,
     stats: false
   });
-  const [confirmAction, setConfirmAction] = useState<{
-    type: string;
-    id: string;
-    name: string;
-  } | null>(null);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [showMenuEditor, setShowMenuEditor] = useState(false);
   const [devTools, setDevTools] = useState({
     terminal: false,
@@ -71,9 +69,19 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     fetchStats();
     fetchUsers();
     fetchMenuItems();
+    fetchDeliveryGuys();
+    
+    // Check if menu editor was active before refresh
+    const activeEditor = localStorage.getItem('activeEditor');
+    if (activeEditor === 'menuEditor') {
+      setShowMenuEditor(true);
+      setActiveTab('menu');
+    }
+    
     const interval = setInterval(() => {
       fetchStats();
       checkSystemStatus();
+      fetchDeliveryGuys();
     }, 10000);
     return () => clearInterval(interval);
   }, [token]);
@@ -119,6 +127,24 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       });
     } finally {
       setLoading(prev => ({ ...prev, users: false }));
+    }
+  };
+
+  const fetchDeliveryGuys = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Filter only delivery guys
+        const delivery = data.users.filter((user: any) => 
+          user.role === 'DELIVERY_GUY' || user.role === 'Delivery Guy'
+        );
+        setDeliveryGuys(delivery);
+      }
+    } catch (error) {
+      console.error('Failed to fetch delivery guys:', error);
     }
   };
 
@@ -206,7 +232,19 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       
       let body: string | undefined = undefined;
       if (action === 'promote') {
-        body = JSON.stringify({ role: 'ADMIN' }); // Default promotion to ADMIN (uppercase)
+        // Ask user which role to assign
+        const roleChoice = window.prompt('Choose role to assign:\n1. ADMIN\n2. DELIVERY_GUY\n3. USER\n\nEnter 1, 2, or 3:');
+        let roleName = 'ADMIN';
+        if (roleChoice === '2') {
+          roleName = 'DELIVERY_GUY';
+        } else if (roleChoice === '3') {
+          roleName = 'USER';
+        }
+        if (!roleChoice || roleChoice.trim() === '') {
+          toast.error('Operation cancelled');
+          return;
+        }
+        body = JSON.stringify({ role: roleName });
       } else if (action === 'demote') {
         body = JSON.stringify({ role: 'USER' }); // Default demotion to USER
       }
@@ -498,7 +536,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         {/* Navigation Tabs */}
         <div className="flex justify-center mb-8">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-2 border border-white/20 nav-tabs">
-            {['overview', 'users', 'menu', 'system', 'devtools'].map((tab) => (
+            {['overview', 'users', 'delivery', 'menu', 'system', 'devtools'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -514,35 +552,37 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stats-grid">
-          {statCards.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative group"
-              >
-                <div className={`absolute -inset-0.5 ${stat.bgGlow} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-300`} />
-                <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 hover:border-yellow-400 transition-all dashboard-card">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-14 h-14 rounded-xl ${stat.bgColor} flex items-center justify-center shadow-lg`}>
-                      <Icon className="w-7 h-7 text-white" />
+        {/* Stats Grid - Only show on Overview tab */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stats-grid">
+            {statCards.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative group"
+                >
+                  <div className={`absolute -inset-0.5 ${stat.bgGlow} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-300`} />
+                  <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 hover:border-yellow-400 transition-all dashboard-card">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-14 h-14 rounded-xl ${stat.bgColor} flex items-center justify-center shadow-lg`}>
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                      <TrendingUp className="w-5 h-5 text-green-600" />
                     </div>
-                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    <p className="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-1">{stat.title}</p>
+                    <p className="text-4xl font-black bg-gradient-to-r from-red-600 to-yellow-600 bg-clip-text text-transparent">
+                      {stat.value}
+                    </p>
                   </div>
-                  <p className="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-1">{stat.title}</p>
-                  <p className="text-4xl font-black bg-gradient-to-r from-red-600 to-yellow-600 bg-clip-text text-transparent">
-                    {stat.value}
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Tab Content */}
         {activeTab === 'overview' && (
@@ -624,21 +664,31 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-red-900/40 to-yellow-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl"
+            className="space-y-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="w-8 h-8 text-yellow-400" />
-              <h2 className="text-3xl font-bold text-white">User Management</h2>
-              <button
-                onClick={fetchUsers}
-                className="ml-auto px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
-              >
-                <RefreshCw className="w-4 h-4 inline mr-2" />
-                Refresh
-              </button>
+            {/* Users Page Header */}
+            <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-xl rounded-2xl p-6 border border-yellow-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">User Management</h2>
+                  <p className="text-yellow-200">Manage user accounts, roles, and permissions</p>
+                </div>
+                <button
+                  onClick={fetchUsers}
+                  className="ml-auto px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4 inline mr-2" />
+                  Refresh Users
+                </button>
+              </div>
             </div>
-            
-            {loading.users ? (
+
+            {/* Users Content */}
+            <div className="bg-gradient-to-br from-red-900/40 to-yellow-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
+              {loading.users ? (
               <div className="text-center py-12">
                 <div className="animate-spin w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p className="text-gray-300 text-lg">Loading users...</p>
@@ -690,11 +740,20 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                           </span>
                         </td>
                         <td className="py-4 px-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            user.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
-                          }`}>
-                            {user.isActive ? 'Active' : 'Inactive'}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              user.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              {user.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                            {user.role === 'Delivery' && (
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                user.isOnline ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'
+                              }`}>
+                                {user.isOnline ? '🟢 Online' : '⚫ Offline'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-4 px-2">
                           <div className="flex gap-2">
@@ -742,6 +801,109 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                 </table>
               </div>
             )}
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'delivery' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Delivery Guys Page Header */}
+            <div className="bg-gradient-to-r from-green-500/20 to-teal-500/20 backdrop-blur-xl rounded-2xl p-6 border border-green-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Delivery Guys Management</h2>
+                  <p className="text-green-200">Monitor delivery drivers and their online status</p>
+                </div>
+                <button
+                  onClick={() => {
+                    fetchDeliveryGuys();
+                    fetchUsers();
+                    toast.success('Refreshed delivery guys data', { duration: 2000 });
+                  }}
+                  className="ml-auto px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4 inline mr-2" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Delivery Guys Content */}
+            <div className="bg-gradient-to-br from-red-900/40 to-yellow-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
+              {deliveryGuys.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
+                  <p className="text-gray-300 text-lg mb-4">No delivery guys found</p>
+                  <p className="text-gray-400 text-sm">Assign DELIVERY_GUY role to users to see them here</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {deliveryGuys.map((delivery: any) => (
+                    <motion.div
+                      key={delivery.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="font-semibold text-white text-lg">{delivery.name}</p>
+                          <p className="text-sm text-gray-300">{delivery.email}</p>
+                        </div>
+                        <div className={`w-4 h-4 rounded-full ${delivery.isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-300 text-sm">Status</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            delivery.isOnline ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {delivery.isOnline ? '🟢 Online' : '⚫ Offline'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-300 text-sm">Account</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            delivery.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                          }`}>
+                            {delivery.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => handleUserAction(delivery.isActive ? 'deactivate' : 'activate', delivery.id)}
+                          className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all ${
+                            delivery.isActive 
+                              ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' 
+                              : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
+                          }`}
+                        >
+                          {delivery.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmAction({
+                            type: 'delete-user',
+                            id: delivery.id,
+                            name: delivery.name
+                          })}
+                          className="px-4 py-2 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -749,28 +911,39 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-red-900/40 to-yellow-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl"
+            className="space-y-6"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <Package className="w-8 h-8 text-yellow-400" />
-              <h2 className="text-3xl font-bold text-white">Menu Management</h2>
-              <div className="ml-auto flex gap-3">
-                <button
-                  onClick={() => setShowMenuEditor(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all"
-                >
-                  <Edit className="w-4 h-4 inline mr-2" />
-                  Edit Menu
-                </button>
-                <button
-                  onClick={fetchMenuItems}
-                  className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
-                >
-                  <RefreshCw className="w-4 h-4 inline mr-2" />
-                  Refresh
-                </button>
+            {/* Menu Page Header */}
+            <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-2xl p-6 border border-green-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Menu Management</h2>
+                  <p className="text-green-200">Manage menu items, pricing, and availability</p>
+                </div>
+                <div className="ml-auto flex gap-3">
+                  <button
+                    onClick={() => setShowMenuEditor(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all"
+                  >
+                    <Edit className="w-4 h-4 inline mr-2" />
+                    Edit Menu
+                  </button>
+                  <button
+                    onClick={fetchMenuItems}
+                    className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
+                  >
+                    <RefreshCw className="w-4 h-4 inline mr-2" />
+                    Refresh
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Menu Content */}
+            <div className="bg-gradient-to-br from-red-900/40 to-yellow-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
             
             {loading.menu ? (
               <div className="text-center py-12">
@@ -835,6 +1008,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                 ))}
               </div>
             )}
+            </div>
           </motion.div>
         )}
 
@@ -1087,7 +1261,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                 <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold text-white mb-2">Confirm Action</h3>
                 <p className="text-gray-300 mb-6">
-                  Are you sure you want to delete <span className="text-yellow-300 font-semibold">{confirmAction.name}</span>?
+                  Are you sure you want to delete <span className="text-yellow-300 font-semibold">{confirmAction?.name || 'this item'}</span>?
                   <br />
                   <span className="text-red-300 text-sm">This action cannot be undone.</span>
                 </p>
@@ -1100,9 +1274,9 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                   </button>
                   <button
                     onClick={() => {
-                      if (confirmAction.type === 'delete-user') {
+                      if (confirmAction?.type === 'delete-user') {
                         handleUserAction('delete', confirmAction.id);
-                      } else if (confirmAction.type === 'delete-menu') {
+                      } else if (confirmAction?.type === 'delete-menu') {
                         handleMenuAction('delete', confirmAction.id);
                       }
                       setConfirmAction(null);

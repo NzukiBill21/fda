@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, ShoppingBag, TrendingUp, UserPlus, ListOrdered, BarChart3, Flame, 
   CheckCircle, Clock, DollarSign, Package, Star, ChevronDown, Download, 
-  Filter, Calendar, Truck, Target, Activity, TrendingDown, AlertCircle, Eye, ArrowUp, ArrowDown
+  Filter, Calendar, Truck, Target, Activity, TrendingDown, AlertCircle, Eye, ArrowUp, ArrowDown, Edit, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import MenuEditor from './MenuEditor';
@@ -29,14 +29,52 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'analytics' | 'users' | 'menu'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'analytics' | 'users' | 'delivery' | 'menu'>('overview');
   const [showMenuEditor, setShowMenuEditor] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [deliveryGuys, setDeliveryGuys] = useState([]);
 
   useEffect(() => {
     fetchData();
+    
+    // Check if menu editor was active before refresh
+    const activeEditor = localStorage.getItem('activeEditor');
+    if (activeEditor === 'menuEditor') {
+      setShowMenuEditor(true);
+      setActiveTab('menu');
+    }
+    
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+    if (activeTab === 'delivery') {
+      fetchDeliveryGuys();
+    }
+  }, [activeTab]);
+
+  const fetchDeliveryGuys = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Filter only delivery guys
+        const delivery = data.users.filter((user: any) => 
+          user.role === 'DELIVERY_GUY' || user.role === 'Delivery' || user.role === 'Delivery Guy'
+        );
+        setDeliveryGuys(delivery);
+      }
+    } catch (error) {
+      console.error('Failed to fetch delivery guys:', error);
+      toast.error('Failed to load delivery drivers');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -64,23 +102,81 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Filter out SUPER_ADMIN users
+        const filteredUsers = data.users.filter((user: any) => 
+          user.role !== 'SUPER_ADMIN' && user.role !== 'Super Admin'
+        );
+        setUsers(filteredUsers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      toast.error('Failed to load users');
+    }
+  };
+
   const handleAssignRole = async () => {
     if (!userEmail || !selectedRole) {
       toast.error('Please enter email and select a role');
       return;
     }
 
-    toast.loading('Assigning role...');
+    const loadingToast = toast.loading('Assigning role...');
     
-    setTimeout(() => {
-      toast.dismiss();
+    try {
+      // First, find the user by email
+      const usersRes = await fetch('http://localhost:5000/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const usersData = await usersRes.json();
+      
+      if (!usersData.success) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      const user = usersData.users.find((u: any) => u.email === userEmail);
+      if (!user) {
+        throw new Error('User not found with that email');
+      }
+      
+      // Promote the user to the selected role
+      const promoteRes = await fetch(`http://localhost:5000/api/admin/users/${user.id}/promote`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: selectedRole })
+      });
+      
+      const promoteData = await promoteRes.json();
+      
+      if (!promoteRes.ok) {
+        throw new Error(promoteData.error || 'Failed to assign role');
+      }
+      
+      toast.dismiss(loadingToast);
       toast.success(`✅ Role "${selectedRole}" assigned to ${userEmail}`, {
         description: 'User permissions updated successfully',
         duration: 3000,
       });
       setUserEmail('');
       setShowRoleDropdown(false);
-    }, 1000);
+      fetchData(); // Refresh data
+      fetchUsers(); // Refresh users list
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      toast.error('Failed to assign role', {
+        description: error.message || 'Please try again',
+        duration: 3000,
+      });
+    }
   };
 
   const handleExportData = (type: string) => {
@@ -269,7 +365,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
 
           {/* Tabs */}
           <div className="flex gap-2 overflow-x-auto scrollbar-visible">
-            {['overview', 'orders', 'analytics', 'users', 'menu'].map((tab) => (
+            {['overview', 'orders', 'analytics', 'users', 'delivery', 'menu'].map((tab) => (
               <motion.button
                 key={tab}
                 whileHover={{ scale: 1.02 }}
@@ -287,8 +383,8 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
           </div>
         </motion.div>
 
-        {/* Stats Grid - Comprehensive Metrics */}
-        {(activeTab === 'overview' || activeTab === 'analytics') && (
+        {/* Stats Grid - Only show on Overview tab */}
+        {activeTab === 'overview' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {statCards.map((stat, index) => {
               const Icon = stat.icon;
@@ -573,6 +669,176 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
           </p>
           <p className="text-yellow-100 text-sm mt-2">Monda Food Delivery System v1.0.0 | PowerBI-Level Dashboard</p>
         </motion.div>
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Users Page Header */}
+            <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl p-6 border border-blue-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">User Management</h2>
+                  <p className="text-blue-200">Manage user accounts and permissions</p>
+                </div>
+                <button
+                  onClick={fetchUsers}
+                  className="ml-auto px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4 inline mr-2" />
+                  Refresh Users
+                </button>
+              </div>
+            </div>
+
+            {/* Users Content */}
+            <div className="bg-gradient-to-br from-red-900/40 to-orange-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
+              {users.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
+                  <p className="text-gray-300 text-lg mb-4">No users found</p>
+                  <button
+                    onClick={fetchUsers}
+                    className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
+                  >
+                    Load Users
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-white">
+                    <thead>
+                      <tr className="border-b border-white/20">
+                        <th className="text-left py-4 px-2">User</th>
+                        <th className="text-left py-4 px-2">Role</th>
+                        <th className="text-left py-4 px-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user: any) => (
+                        <motion.tr
+                          key={user.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="border-b border-white/10 hover:bg-white/5 transition-all"
+                        >
+                          <td className="py-4 px-2">
+                            <div>
+                              <p className="font-semibold">{user.name}</p>
+                              <p className="text-sm text-gray-300">{user.email}</p>
+                            </div>
+                          </td>
+                          <td className="py-4 px-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              user.role === 'Admin' ? 'bg-yellow-500/20 text-yellow-300' :
+                              user.role === 'Delivery' ? 'bg-green-500/20 text-green-300' :
+                              'bg-gray-500/20 text-gray-300'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="py-4 px-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              user.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              {user.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Delivery Tab */}
+        {activeTab === 'delivery' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Delivery Page Header */}
+            <div className="bg-gradient-to-r from-green-500/20 to-teal-500/20 backdrop-blur-xl rounded-2xl p-6 border border-green-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
+                  <Truck className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Delivery Drivers</h2>
+                  <p className="text-green-200">Monitor online status and performance</p>
+                </div>
+                <button
+                  onClick={() => {
+                    fetchDeliveryGuys();
+                    toast.success('Refreshed delivery data', { duration: 2000 });
+                  }}
+                  className="ml-auto px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4 inline mr-2" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Delivery Drivers Content */}
+            <div className="bg-gradient-to-br from-red-900/40 to-orange-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
+              {deliveryGuys.length === 0 ? (
+                <div className="text-center py-12">
+                  <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
+                  <p className="text-gray-300 text-lg mb-4">No delivery drivers found</p>
+                  <p className="text-gray-400 text-sm">Assign DELIVERY_GUY role to users to see them here</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {deliveryGuys.map((driver: any) => (
+                    <motion.div
+                      key={driver.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="font-semibold text-white text-lg">{driver.name}</p>
+                          <p className="text-sm text-gray-300">{driver.email}</p>
+                        </div>
+                        <div className={`w-4 h-4 rounded-full ${driver.isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-300 text-sm">Status</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            driver.isOnline ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {driver.isOnline ? '🟢 Online' : '⚫ Offline'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-300 text-sm">Account</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            driver.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                          }`}>
+                            {driver.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Menu Tab */}
         {activeTab === 'menu' && (

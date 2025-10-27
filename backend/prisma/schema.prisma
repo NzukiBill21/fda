@@ -88,6 +88,11 @@ model MenuItem {
   isSpicy     Boolean     @default(false)
   isVegetarian Boolean    @default(false)
   isAvailable Boolean     @default(true)
+  isFeatured  Boolean     @default(false)
+  stock       Int         @default(0)
+  prepTime    Int         @default(15)
+  nutrition   String?     // JSON string for nutrition info
+  allergens   String?     // JSON string for allergens array
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   orderItems  OrderItem[]
