@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Star, Heart, Flame, Leaf } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { useCart } from '../contexts/CartContext';
 
 export interface MenuItem {
   id: string;

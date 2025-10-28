@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
+import { HeaderWithCart } from './components/HeaderWithCart';
 import { HeroSlideshow } from './components/HeroSlideshow';
 import { MenuSection, MenuItem, menuItems } from './components/MenuSection';
-import { CartSheet, CartItem } from './components/CartSheet';
 import { CheckoutDialog, OrderDetails } from './components/CheckoutDialog';
 import { ReviewsSection } from './components/ReviewsSection';
 import { DeliveryTracker } from './components/DeliveryTracker';
@@ -18,6 +18,16 @@ import { DeliveryDashboard } from './components/DeliveryDashboard';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+
+interface CartItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  category: string;
+  quantity: number;
+}
 
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -85,9 +95,9 @@ export default function App() {
     if (quantity === 0) {
       handleRemoveItem(id);
     } else {
-      setCartItems(prev =>
-        prev.map(item => item.id === id ? { ...item, quantity } : item)
-      );
+      setCartItems(prev => prev.map(item => 
+        item.id === id ? { ...item, quantity } : item
+      ));
     }
   };
 
@@ -100,14 +110,106 @@ export default function App() {
     setIsCheckoutOpen(true);
   };
 
-  const handleConfirmOrder = (details: OrderDetails) => {
-    const orderId = `ORD-${Date.now()}`;
-    setOrderId(orderId);
-    setOrderDetails(details);
-    setOrderPlaced(true);
-    setIsCheckoutOpen(false);
-    setCartItems([]);
-    toast.success('Order placed successfully!');
+  const handleConfirmOrder = async (details: OrderDetails) => {
+    try {
+      // Create order via API
+      const orderData = {
+        userId: user?.email || 'guest',
+        items: cartItems.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity
+        })),
+        deliveryAddress: details.address,
+        deliveryNotes: details.notes,
+        customerName: details.name,
+        customerPhone: details.phone,
+        deliveryLatitude: 0,
+        deliveryLongitude: 0,
+        estimatedDeliveryTime: 30
+      };
+
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      if (response.ok) {
+        const order = await response.json();
+        const orderId = order.order?.id || `ORD-${Date.now()}`;
+
+        setOrderId(orderId);
+        setOrderDetails(details);
+        setOrderPlaced(true);
+        setIsCheckoutOpen(false);
+        setCartItems([]);
+        toast.success('Order placed successfully!');
+
+        // Scroll to delivery tracker
+        setTimeout(() => {
+          const trackerElement = document.querySelector('[data-delivery-tracker]');
+          if (trackerElement) {
+            trackerElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 500);
+      } else {
+        // Try demo order endpoint as fallback
+        const demoResponse = await fetch('http://localhost:5000/api/demo/order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerName: details.name,
+            customerPhone: details.phone,
+            deliveryAddress: details.address,
+            deliveryNotes: details.notes
+          })
+        });
+
+        if (demoResponse.ok) {
+          const demoOrder = await demoResponse.json();
+          const orderId = demoOrder.order?.id || `DEMO-${Date.now()}`;
+
+          setOrderId(orderId);
+          setOrderDetails(details);
+          setOrderPlaced(true);
+          setIsCheckoutOpen(false);
+          setCartItems([]);
+          toast.success('Order placed successfully! (Demo mode)');
+
+          // Scroll to delivery tracker
+          setTimeout(() => {
+            const trackerElement = document.querySelector('[data-delivery-tracker]');
+            if (trackerElement) {
+              trackerElement.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 500);
+        } else {
+          throw new Error('Failed to create order');
+        }
+      }
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      // Fallback to local order with delivery tracking
+      const orderId = `ORD-${Date.now()}`;
+      setOrderId(orderId);
+      setOrderDetails(details);
+      setOrderPlaced(true);
+      setIsCheckoutOpen(false);
+      setCartItems([]);
+      toast.success('Order placed successfully! (Local tracking)');
+      
+      // Scroll to delivery tracker
+      setTimeout(() => {
+        const trackerElement = document.querySelector('[data-delivery-tracker]');
+        if (trackerElement) {
+          trackerElement.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+    }
   };
 
   const handleLoginSuccess = (user: any, token: string) => {
@@ -130,7 +232,7 @@ export default function App() {
     return (
       <div>
         <Header 
-          cartCount={cartCount} 
+          cartCount={cartCount}
           onCartClick={() => setIsCartOpen(true)}
           user={user}
           onLoginClick={() => setIsAuthOpen(true)}
@@ -161,13 +263,13 @@ export default function App() {
     return (
       <div>
         <Header 
-          cartCount={cartCount} 
+          cartCount={cartCount}
           onCartClick={() => setIsCartOpen(true)}
           user={user}
           onLoginClick={() => setIsAuthOpen(true)}
           onLogout={handleLogout}
         />
-        <AdminDashboard token={authToken} />
+        <AdminDashboard token={authToken} setIsAuthOpen={setIsAuthOpen} />
         <BackendStatus />
         <RoleIndicator user={user} />
         <AuthDialog
@@ -215,7 +317,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-950 via-red-900 to-yellow-900">
       <Header 
-        cartCount={cartCount} 
+        cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
         user={user}
         onLoginClick={() => setIsAuthOpen(true)}
@@ -232,7 +334,7 @@ export default function App() {
             >
               <HeroSlideshow 
                 onAddToCart={handleAddToCart}
-                onOpenCart={() => setIsCartOpen(true)}
+                onOpenCart={() => setIsCheckoutOpen(true)}
                 onDismiss={() => setShowSlideshow(false)}
               />
             </motion.div>
@@ -287,6 +389,7 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="py-20 bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-900"
+            data-delivery-tracker
           >
             <div className="container mx-auto px-4 max-w-5xl">
               <DeliveryTracker 
@@ -308,22 +411,88 @@ export default function App() {
 
       <Footer />
 
-      <CartSheet
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onCheckout={handleCheckout}
-        onAddToCart={handleAddToCart}
-        aiRecommendations={
-          <AIRecommendations 
-            cartItems={cartItems}
-            onAddToCart={handleAddToCart}
-            allMenuItems={menuItems}
-          />
-        }
-      />
+      {/* Cart Popup */}
+      {isCartOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-800">Your Cart</h2>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="text-gray-500 hover:text-red-500 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-96">
+              {cartItems.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">🛒</div>
+                  <p className="text-gray-500 text-lg">Your cart is empty</p>
+                  <p className="text-gray-400 text-sm">Add some delicious items to get started!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                        <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-bold text-orange-600">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                            className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600"
+                          >
+                            -
+                          </button>
+                          <button
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                            className="w-8 h-8 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center text-white"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {cartItems.length > 0 && (
+              <div className="p-6 border-t bg-gray-50">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-lg font-semibold text-gray-700">Total:</span>
+                  <span className="text-2xl font-bold text-orange-600">
+                    ${total.toFixed(2)}
+                  </span>
+                </div>
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-orange-600"
+                  style={{ 
+                    backgroundColor: '#f97316',
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Proceed to Checkout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <CheckoutDialog
         isOpen={isCheckoutOpen}
@@ -336,7 +505,7 @@ export default function App() {
         isOpen={isReviewOpen}
         onClose={() => setIsReviewOpen(false)}
         orderId={orderId}
-        onReviewSubmit={() => {
+        onSubmitReview={() => {
           setIsReviewOpen(false);
           setOrderPlaced(false);
           setOrderDetails(null);

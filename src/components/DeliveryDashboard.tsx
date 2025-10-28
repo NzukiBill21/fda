@@ -18,6 +18,8 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
   const [battery, setBattery] = useState(85);
   const [signal, setSignal] = useState(4);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [profileImage, setProfileImage] = useState('');
   const [profileData, setProfileData] = useState({
@@ -40,6 +42,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     fetchEarnings();
     fetchPerformance();
     fetchProfileData(); // Fetch saved profile data
+    fetchOrders(); // Fetch delivery orders
     
     // Get current location
     if (navigator.geolocation) {
@@ -77,12 +80,13 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
       fetchWeather({ lat: -1.2921, lng: 36.8219 });
     }
 
-    // Set up periodic updates
+    // Set up periodic updates (more frequent for live orders)
     const interval = setInterval(() => {
       fetchAssignments();
       fetchEarnings();
       fetchPerformance();
-    }, 30000); // Update every 30 seconds
+      fetchOrders();
+    }, 5000); // Update every 5 seconds
 
     // Auto-track location when online
     let locationInterval: NodeJS.Timeout | null = null;
@@ -171,6 +175,49 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
       }
     } catch (error) {
       console.error('Failed to fetch performance:', error);
+    }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/delivery/orders', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders(data.orders || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, status: string, notes?: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/delivery/orders/${orderId}/location`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status,
+          notes,
+          latitude: location.lat,
+          longitude: location.lng
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Order status updated successfully');
+        fetchOrders(); // Refresh orders
+      } else {
+        toast.error(data.error || 'Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      toast.error('Failed to update order status');
     }
   };
 
@@ -622,12 +669,12 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                         transition={{ repeat: Infinity, duration: 2 }}
                       >📍</motion.span> {weather.city}
                     </p>
-                    <p className="text-xs text-gray-600">{assignments.length} {assignments.length === 1 ? 'delivery' : 'deliveries'}</p>
+                    <p className="text-xs text-gray-600">{orders.length} {orders.length === 1 ? 'delivery' : 'deliveries'}</p>
                   </div>
-                  {assignments.length > 0 && (
+                  {orders.length > 0 && (
                     <div className="absolute top-2 right-2 bg-red-500/95 backdrop-blur-lg rounded-lg px-3 py-2 shadow-lg z-30">
                       <p className="text-xs font-bold text-white flex items-center gap-1">
-                        <span>🚚</span> {assignments.length} Active
+                        <span>🚚</span> {orders.length} Active
                       </p>
                     </div>
                   )}
@@ -696,7 +743,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
             >
               <h2 className="text-white font-bold text-xl mb-4">Your Deliveries</h2>
 
-              {assignments.length === 0 ? (
+              {orders.length === 0 ? (
                 <div className="text-center py-8">
                   <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-300 text-lg">No deliveries assigned</p>
@@ -706,7 +753,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {assignments.map((order: any) => (
+                  {orders.map((order: any) => (
                     <motion.div
                       key={order.id}
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -753,12 +800,12 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                       </div>
 
                       <div className="flex gap-2">
-                        {order.status === 'PENDING' && (
+                        {order.status === 'CONFIRMED' && (
                           <button
-                            onClick={() => handleAcceptOrder(order.id)}
-                            className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-green-600 hover:to-teal-600 transition-all active:scale-95"
+                            onClick={() => updateOrderStatus(order.id, 'OUT_FOR_DELIVERY', 'Picked up order, heading to customer')}
+                            className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-blue-600 hover:to-cyan-600 transition-all active:scale-95"
                           >
-                            ✓ Accept Delivery
+                            🚚 Start Delivery
                           </button>
                         )}
                         {order.status === 'OUT_FOR_DELIVERY' && (
@@ -770,13 +817,19 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                               <Map className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => handleCompleteOrder(order.id)}
+                              onClick={() => updateOrderStatus(order.id, 'DELIVERED', 'Order delivered successfully')}
                               className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all active:scale-95"
                             >
                               ✓ Mark Delivered
                             </button>
                           </>
                         )}
+                        <button
+                          onClick={() => window.open(`tel:${order.customerPhone}`)}
+                          className="px-3 py-3 sm:py-4 rounded-xl bg-gray-500 text-white font-bold text-base sm:text-lg shadow-lg hover:bg-gray-600 transition-all active:scale-95"
+                        >
+                          📞
+                        </button>
                       </div>
                     </motion.div>
                   ))}

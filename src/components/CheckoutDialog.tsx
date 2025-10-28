@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,6 +7,7 @@ import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { CreditCard, Banknote, MapPin, User, Phone, CheckCircle, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCart } from '../contexts/CartContext';
 
 interface CheckoutDialogProps {
   isOpen: boolean;

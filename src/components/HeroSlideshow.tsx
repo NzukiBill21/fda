@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Sparkles, X, ShoppingCart } from 'lucide-react';
+import { useCart } from '../contexts/CartContext';
 
 interface Slide {
   id: string | number;

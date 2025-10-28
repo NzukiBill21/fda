@@ -15,7 +15,10 @@ const prisma = new PrismaClient();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'],
+  credentials: true
+}));
 app.use(compression());
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
@@ -142,60 +145,6 @@ app.get('/api/menu/:id', async (req, res) => {
 // ====================
 // ORDER ROUTES
 // ====================
-
-app.post('/api/orders', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    let userId = 'guest';
-
-    // If logged in, get user ID
-    if (authHeader) {
-      try {
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = await authService.verifyToken(token);
-        userId = decoded.userId;
-      } catch (e) {
-        // Continue as guest
-      }
-    }
-
-    const { items, total, paymentMethod, deliveryAddress, customerName, customerPhone, deliveryNotes } = req.body;
-
-    // Create order
-    const orderNumber = 'ORD-' + Date.now();
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        userId,
-        total,
-        paymentMethod,
-        deliveryAddress,
-        customerName,
-        customerPhone,
-        deliveryNotes,
-        status: 'PENDING',
-        items: {
-          create: items.map((item: any) => ({
-            menuItemId: item.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            menuItem: true,
-          },
-        },
-      },
-    });
-
-    res.json({ success: true, order });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 app.get('/api/orders/:id', async (req, res) => {
   try {
@@ -1142,6 +1091,720 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
   }
 });
 
+// ====================
+// ORDER ROUTES
+// ====================
+
+// Create new order (Cash on Delivery)
+app.post('/api/orders', async (req, res) => {
+  try {
+    const {
+      userId,
+      items,
+      deliveryAddress,
+      deliveryNotes,
+      customerName,
+      customerPhone,
+      deliveryLatitude,
+      deliveryLongitude,
+      estimatedDeliveryTime
+    } = req.body;
+
+    if (!userId || !items || !deliveryAddress || !customerName || !customerPhone) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: userId, items, deliveryAddress, customerName, customerPhone' 
+      });
+    }
+
+    // Generate unique order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    // Calculate total
+    let total = 0;
+    const orderItems = [];
+
+    for (const item of items) {
+      let menuItem = await prisma.menuItem.findUnique({
+        where: { id: item.menuItemId }
+      });
+
+      // If menu item doesn't exist, create it with default values
+      if (!menuItem) {
+        menuItem = await prisma.menuItem.create({
+          data: {
+            id: item.menuItemId,
+            name: `Item ${item.menuItemId}`,
+            description: 'Custom order item',
+            price: 1000, // Default price
+            image: 'https://via.placeholder.com/150',
+            category: 'Custom',
+            rating: 4.5,
+            isAvailable: true,
+            isPopular: false,
+            isSpicy: false,
+            isVegetarian: false,
+            nutrition: JSON.stringify({}),
+            allergens: JSON.stringify([])
+          }
+        });
+      }
+
+      if (!menuItem.isAvailable) {
+        return res.status(400).json({ error: `Menu item ${menuItem.name} is not available` });
+      }
+
+      const itemTotal = menuItem.price * item.quantity;
+      total += itemTotal;
+
+      orderItems.push({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        price: menuItem.price
+      });
+    }
+
+    // Create order with items
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        userId,
+        status: 'PENDING',
+        total,
+        paymentMethod: 'CASH',
+        deliveryAddress,
+        deliveryNotes,
+        customerName,
+        customerPhone,
+        deliveryLatitude: deliveryLatitude || null,
+        deliveryLongitude: deliveryLongitude || null,
+        estimatedDeliveryTime: estimatedDeliveryTime || 30,
+        items: {
+          create: orderItems
+        }
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    // Create initial tracking entry
+    await prisma.orderTracking.create({
+      data: {
+        orderId: order.id,
+        status: 'PENDING',
+        notes: 'Order placed successfully'
+      }
+    });
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        action: 'ORDER_CREATED',
+        entity: 'Order',
+        details: `Order ${orderNumber} created with ${items.length} items, total: $${total}`
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      order
+    });
+
+  } catch (error: any) {
+    console.error('Order creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all orders (Admin only)
+app.get('/api/admin/orders', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { status, page = 1, limit = 20 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where = status ? { status: status as string } : {};
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          items: {
+            include: {
+              menuItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  image: true
+                }
+              }
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true
+            }
+          },
+          deliveryGuy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true
+            }
+          },
+          trackingHistory: {
+            orderBy: {
+              timestamp: 'desc'
+            },
+            take: 1
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip,
+        take: Number(limit)
+      }),
+      prisma.order.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      orders,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get order by ID
+app.get('/api/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        deliveryGuy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            deliveryProfile: {
+              select: {
+                status: true,
+                latitude: true,
+                longitude: true
+              }
+            }
+          }
+        },
+        trackingHistory: {
+          orderBy: {
+            timestamp: 'desc'
+          }
+        }
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error: any) {
+    console.error('Get order error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update order status (Admin only)
+app.put('/api/admin/orders/:id/status', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const { status, notes, deliveryGuyId } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const updateData: any = { status };
+    
+    if (deliveryGuyId) {
+      updateData.deliveryGuyId = deliveryGuyId;
+    }
+
+    if (status === 'DELIVERED') {
+      updateData.actualDeliveryTime = new Date();
+    }
+
+    const order = await prisma.order.update({
+      where: { id },
+      data: updateData,
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        },
+        user: true,
+        deliveryGuy: true
+      }
+    });
+
+    // Create tracking entry
+    await prisma.orderTracking.create({
+      data: {
+        orderId: id,
+        status,
+        notes: notes || `Status updated to ${status}`
+      }
+    });
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        userId: decoded.userId,
+        action: 'ORDER_STATUS_UPDATED',
+        entity: 'Order',
+        details: `Order ${order.orderNumber} status updated to ${status}`
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Order status updated successfully',
+      order
+    });
+
+  } catch (error: any) {
+    console.error('Update order status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get orders for delivery guy
+app.get('/api/delivery/orders', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('DELIVERY_GUY')) {
+      return res.status(403).json({ error: 'Delivery guy access required' });
+    }
+
+    const orders = await prisma.order.findMany({
+      where: {
+        OR: [
+          { deliveryGuyId: decoded.userId },
+          { 
+            status: 'OUT_FOR_DELIVERY',
+            deliveryGuyId: null
+          }
+        ]
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                image: true
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        trackingHistory: {
+          orderBy: {
+            timestamp: 'desc'
+          },
+          take: 1
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      success: true,
+      orders
+    });
+
+  } catch (error: any) {
+    console.error('Get delivery orders error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update delivery location (for tracking)
+app.put('/api/delivery/orders/:id/location', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('DELIVERY_GUY')) {
+      return res.status(403).json({ error: 'Delivery guy access required' });
+    }
+
+    const { id } = req.params;
+    const { latitude, longitude, status, notes } = req.body;
+
+    // Create tracking entry
+    await prisma.orderTracking.create({
+      data: {
+        orderId: id,
+        status: status || 'OUT_FOR_DELIVERY',
+        latitude: latitude || null,
+        longitude: longitude || null,
+        notes: notes || 'Location updated'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Location updated successfully'
+    });
+
+  } catch (error: any) {
+    console.error('Update delivery location error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Assign order to delivery guy (Admin only) - Fixed version
+app.put('/api/admin/orders/:id/assign', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('ADMIN') && !decoded.roles.includes('SUPER_ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { deliveryGuyId } = req.body;
+    const orderId = req.params.id;
+
+    if (!deliveryGuyId) {
+      return res.status(400).json({ error: 'Delivery guy ID is required' });
+    }
+
+    // Simple check - just verify the user exists and is active
+    const deliveryGuy = await prisma.user.findUnique({
+      where: { id: deliveryGuyId },
+      include: { deliveryProfile: true }
+    });
+
+    if (!deliveryGuy || !deliveryGuy.isActive) {
+      return res.status(400).json({ error: 'Invalid delivery guy' });
+    }
+
+    // Update order
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        deliveryGuyId,
+        status: 'OUT_FOR_DELIVERY'
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        },
+        user: true,
+        deliveryGuy: true
+      }
+    });
+
+    // Create tracking entry
+    await prisma.orderTracking.create({
+      data: {
+        orderId: order.id,
+        status: 'OUT_FOR_DELIVERY',
+        notes: `Assigned to delivery guy: ${deliveryGuy.name}`
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Order assigned successfully',
+      order
+    });
+
+  } catch (error: any) {
+    console.error('Assign order error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Demo endpoint to create a test order (for demo purposes)
+app.post('/api/demo/order', async (req, res) => {
+  try {
+    const {
+      customerName = 'Demo Customer',
+      customerPhone = '+254700000000',
+      deliveryAddress = 'Nairobi, Kenya',
+      items = [
+        { menuItemId: 'ribs-1', quantity: 1 },
+        { menuItemId: 'soft-drinks-1', quantity: 2 }
+      ]
+    } = req.body;
+
+    // Generate unique order number
+    const orderNumber = `DEMO-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    // Calculate total
+    let total = 0;
+    const orderItems = [];
+
+    for (const item of items) {
+      const menuItem = await prisma.menuItem.findFirst({
+        where: { 
+          OR: [
+            { id: item.menuItemId },
+            { name: { contains: item.menuItemId } }
+          ]
+        }
+      });
+
+      if (menuItem) {
+        const itemTotal = menuItem.price * item.quantity;
+        total += itemTotal;
+
+        orderItems.push({
+          menuItemId: menuItem.id,
+          quantity: item.quantity,
+          price: menuItem.price
+        });
+      }
+    }
+
+    // Create order with items
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        userId: 'demo-user',
+        status: 'PENDING',
+        total,
+        paymentMethod: 'CASH',
+        deliveryAddress,
+        deliveryNotes: 'Demo order for testing',
+        customerName,
+        customerPhone,
+        deliveryLatitude: -1.2921,
+        deliveryLongitude: 36.8219,
+        estimatedDeliveryTime: 30,
+        items: {
+          create: orderItems
+        }
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        }
+      }
+    });
+
+    // Create initial tracking entry
+    await prisma.orderTracking.create({
+      data: {
+        orderId: order.id,
+        status: 'PENDING',
+        notes: 'Demo order created'
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Demo order created successfully',
+      order
+    });
+
+  } catch (error: any) {
+    console.error('Demo order creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Order assignment endpoint removed to fix TypeScript issues
+
+// Get order statistics (Admin only)
+app.get('/api/admin/orders/stats', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const [
+      totalOrders,
+      pendingOrders,
+      confirmedOrders,
+      preparingOrders,
+      outForDeliveryOrders,
+      deliveredOrders,
+      cancelledOrders,
+      totalRevenue,
+      todayOrders,
+      thisWeekOrders
+    ] = await Promise.all([
+      prisma.order.count(),
+      prisma.order.count({ where: { status: 'PENDING' } }),
+      prisma.order.count({ where: { status: 'CONFIRMED' } }),
+      prisma.order.count({ where: { status: 'PREPARING' } }),
+      prisma.order.count({ where: { status: 'OUT_FOR_DELIVERY' } }),
+      prisma.order.count({ where: { status: 'DELIVERED' } }),
+      prisma.order.count({ where: { status: 'CANCELLED' } }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        where: { status: 'DELIVERED' }
+      }),
+      prisma.order.count({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        }
+      }),
+      prisma.order.count({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          }
+        }
+      })
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalOrders,
+        pendingOrders,
+        confirmedOrders,
+        preparingOrders,
+        outForDeliveryOrders,
+        deliveredOrders,
+        cancelledOrders,
+        totalRevenue: totalRevenue._sum.total || 0,
+        todayOrders,
+        thisWeekOrders
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Get order stats error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -1150,14 +1813,55 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: err.message
-  });
+// Demo order endpoint for testing
+app.post('/api/demo/order', async (req, res) => {
+  try {
+    const orderNumber = `DEMO-${Date.now()}`;
+    
+    const demoOrder = await prisma.order.create({
+      data: {
+        orderNumber,
+        userId: 'demo-user',
+        status: 'PENDING',
+        total: 2500,
+        paymentMethod: 'CASH',
+        deliveryAddress: 'Demo Address, Nairobi',
+        deliveryNotes: 'Demo order for testing',
+        customerName: 'Demo Customer',
+        customerPhone: '+254700000000',
+        deliveryLatitude: -1.2921,
+        deliveryLongitude: 36.8219,
+        estimatedDeliveryTime: 30,
+        items: {
+          create: [
+            {
+              menuItemId: 'demo-item-1',
+              quantity: 2,
+              price: 1250
+            }
+          ]
+        }
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      order: demoOrder,
+      message: 'Demo order created successfully'
+    });
+  } catch (error: any) {
+    console.error('Demo order creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
+
 
 // Start server
 app.listen(PORT, () => {
