@@ -1128,16 +1128,37 @@ app.post('/api/orders', async (req, res) => {
         where: { id: item.menuItemId }
       });
 
-      // If menu item doesn't exist, create it with default values
+      // If menu item doesn't exist, create it with proper name from frontend data
       if (!menuItem) {
+        // Map of known menu items with proper names
+        const menuItemNames: { [key: string]: { name: string; description: string; price: number; category: string } } = {
+          'ribs-1': { name: 'Tender BBQ Ribs', description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce', price: 4000, category: 'Premium' },
+          'steak-1': { name: 'Premium Steak Combo', description: 'Perfectly grilled premium beef steak with seasonal vegetables', price: 8000, category: 'Premium' },
+          'nyama-1': { name: 'Nyama Choma Special', description: 'Authentic Kenyan roasted goat meat with kachumbari', price: 1800, category: 'African Specials' },
+          'pilau-1': { name: 'Beef Pilau', description: 'Aromatic spiced rice with tender beef chunks, steaming hot', price: 650, category: 'African Specials' },
+          'ugali-1': { name: 'Ugali & Sukuma', description: 'Traditional Kenyan maize meal with collard greens', price: 300, category: 'African Specials' },
+          'chicken-1': { name: 'Grilled Chicken', description: 'Perfectly seasoned grilled chicken breast', price: 1200, category: 'Main Course' },
+          'fish-1': { name: 'Tilapia Fry', description: 'Fresh tilapia fish fried to golden perfection', price: 1500, category: 'Main Course' },
+          'pizza-1': { name: 'Margherita Pizza', description: 'Classic tomato, mozzarella, and basil pizza', price: 2000, category: 'Italian' },
+          'burger-1': { name: 'Classic Burger', description: 'Juicy beef patty with fresh vegetables', price: 1800, category: 'Fast Food' },
+          'pasta-1': { name: 'Spaghetti Carbonara', description: 'Creamy pasta with bacon and parmesan', price: 1600, category: 'Italian' }
+        };
+
+        const itemData = menuItemNames[item.menuItemId] || {
+          name: `Delicious ${item.menuItemId.replace('-', ' ').replace(/\d+/g, '').trim()}`,
+          description: 'Fresh and delicious meal prepared with care',
+          price: 1000,
+          category: 'Custom'
+        };
+
         menuItem = await prisma.menuItem.create({
           data: {
             id: item.menuItemId,
-            name: `Item ${item.menuItemId}`,
-            description: 'Custom order item',
-            price: 1000, // Default price
+            name: itemData.name,
+            description: itemData.description,
+            price: itemData.price,
             image: 'https://via.placeholder.com/150',
-            category: 'Custom',
+            category: itemData.category,
             rating: 4.5,
             isAvailable: true,
             isPopular: false,
@@ -1811,6 +1832,91 @@ app.use((req, res) => {
     error: 'Route not found',
     path: req.path
   });
+});
+
+// Sync menu items from frontend to database
+app.post('/api/admin/sync-menu', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const frontendMenuItems = [
+      { id: 'ribs-1', name: 'Tender BBQ Ribs', description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce', price: 4000, category: 'Premium', rating: 5.0, isPopular: true, isSpicy: false, isVegetarian: false },
+      { id: 'steak-1', name: 'Premium Steak Combo', description: 'Perfectly grilled premium beef steak with seasonal vegetables', price: 8000, category: 'Premium', rating: 4.9, isPopular: true, isSpicy: false, isVegetarian: false },
+      { id: 'nyama-1', name: 'Nyama Choma Special', description: 'Authentic Kenyan roasted goat meat with kachumbari', price: 1800, category: 'African Specials', rating: 4.9, isPopular: true, isSpicy: true, isVegetarian: false },
+      { id: 'pilau-1', name: 'Beef Pilau', description: 'Aromatic spiced rice with tender beef chunks, steaming hot', price: 650, category: 'African Specials', rating: 4.8, isPopular: true, isSpicy: false, isVegetarian: false },
+      { id: 'ugali-1', name: 'Ugali & Sukuma', description: 'Traditional Kenyan maize meal with collard greens', price: 300, category: 'African Specials', rating: 4.7, isPopular: false, isSpicy: false, isVegetarian: true },
+      { id: 'chicken-1', name: 'Grilled Chicken', description: 'Perfectly seasoned grilled chicken breast', price: 1200, category: 'Main Course', rating: 4.6, isPopular: false, isSpicy: false, isVegetarian: false },
+      { id: 'fish-1', name: 'Tilapia Fry', description: 'Fresh tilapia fish fried to golden perfection', price: 1500, category: 'Main Course', rating: 4.8, isPopular: false, isSpicy: false, isVegetarian: false },
+      { id: 'pizza-1', name: 'Margherita Pizza', description: 'Classic tomato, mozzarella, and basil pizza', price: 2000, category: 'Italian', rating: 4.7, isPopular: false, isSpicy: false, isVegetarian: true },
+      { id: 'burger-1', name: 'Classic Burger', description: 'Juicy beef patty with fresh vegetables', price: 1800, category: 'Fast Food', rating: 4.5, isPopular: false, isSpicy: false, isVegetarian: false },
+      { id: 'pasta-1', name: 'Spaghetti Carbonara', description: 'Creamy pasta with bacon and parmesan', price: 1600, category: 'Italian', rating: 4.6, isPopular: false, isSpicy: false, isVegetarian: false }
+    ];
+
+    const syncedItems = [];
+    for (const item of frontendMenuItems) {
+      const existingItem = await prisma.menuItem.findUnique({
+        where: { id: item.id }
+      });
+
+      if (existingItem) {
+        // Update existing item
+        const updatedItem = await prisma.menuItem.update({
+          where: { id: item.id },
+          data: {
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            category: item.category,
+            rating: item.rating,
+            isPopular: item.isPopular || false,
+            isSpicy: item.isSpicy || false,
+            isVegetarian: item.isVegetarian || false,
+            isAvailable: true
+          }
+        });
+        syncedItems.push(updatedItem);
+      } else {
+        // Create new item
+        const newItem = await prisma.menuItem.create({
+          data: {
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            category: item.category,
+            rating: item.rating,
+            isPopular: item.isPopular || false,
+            isSpicy: item.isSpicy || false,
+            isVegetarian: item.isVegetarian || false,
+            isAvailable: true,
+            image: 'https://via.placeholder.com/150',
+            nutrition: JSON.stringify({}),
+            allergens: JSON.stringify([])
+          }
+        });
+        syncedItems.push(newItem);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Synced ${syncedItems.length} menu items`,
+      items: syncedItems
+    });
+  } catch (error: any) {
+    console.error('Menu sync error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Demo order endpoint for testing
