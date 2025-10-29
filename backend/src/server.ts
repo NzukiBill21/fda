@@ -1193,6 +1193,90 @@ app.post('/api/orders', async (req, res) => {
       });
     }
 
+    // Ensure demo user exists (avoid FK error on userId)
+    let demoUserRef = await prisma.user.findUnique({ where: { id: 'demo-user' } });
+    if (!demoUserRef) {
+      // Ensure CUSTOMER role exists
+      let customerRoleRef = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
+      if (!customerRoleRef) {
+        customerRoleRef = await prisma.role.create({ data: { name: 'CUSTOMER', description: 'Regular customer role' } });
+      }
+      demoUserRef = await prisma.user.create({
+        data: {
+          id: 'demo-user',
+          email: 'demo@monda.com',
+          password: 'demo123',
+          name: 'Demo Customer',
+          phone: '+254700000000',
+          roles: { create: { roleId: customerRoleRef.id } }
+        }
+      });
+    }
+
+    // If we failed to resolve any menu items from incoming items, create a default demo item
+    if (orderItems.length === 0) {
+      let fallbackItem = await prisma.menuItem.findUnique({ where: { id: 'demo-item-1' } });
+      if (!fallbackItem) {
+        fallbackItem = await prisma.menuItem.create({
+          data: {
+            id: 'demo-item-1',
+            name: 'Demo Burger',
+            description: 'A delicious demo burger for testing',
+            price: 1250,
+            category: 'Fast Food',
+            rating: 4.5,
+            isAvailable: true,
+            isPopular: false,
+            isSpicy: false,
+            isVegetarian: false
+          }
+        });
+      }
+      orderItems.push({ menuItemId: fallbackItem.id, quantity: 1, price: fallbackItem.price });
+      total = fallbackItem.price;
+    }
+
+    // Ensure demo user exists (avoid FK error on userId)
+    let demoUser = await prisma.user.findUnique({ where: { email: 'demo@monda.com' } });
+    if (!demoUser) {
+      let customerRole = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
+      if (!customerRole) {
+        customerRole = await prisma.role.create({ data: { name: 'CUSTOMER', description: 'Regular customer role' } });
+      }
+      demoUser = await prisma.user.create({
+        data: {
+          email: 'demo@monda.com',
+          password: 'demo123',
+          name: 'Demo Customer',
+          phone: '+254700000000',
+          roles: { create: { roleId: customerRole.id } }
+        }
+      });
+    }
+
+    // If we failed to resolve any menu items, add a fallback
+    if (orderItems.length === 0) {
+      let fallback = await prisma.menuItem.findUnique({ where: { id: 'demo-item-1' } });
+      if (!fallback) {
+        fallback = await prisma.menuItem.create({
+          data: {
+            id: 'demo-item-1',
+            name: 'Demo Burger',
+            description: 'A delicious demo burger for testing',
+            price: 1250,
+            category: 'Fast Food',
+            rating: 4.5,
+            isAvailable: true,
+            isPopular: false,
+            isSpicy: false,
+            isVegetarian: false
+          }
+        });
+      }
+      orderItems.push({ menuItemId: fallback.id, quantity: 1, price: fallback.price });
+      total = fallback.price;
+    }
+
     // Create order with items
     const order = await prisma.order.create({
       data: {
@@ -1682,6 +1766,40 @@ app.post('/api/demo/order', async (req, res) => {
     // Generate unique order number
     const orderNumber = `DEMO-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
+    // Ensure demo user exists
+    let demoUser = await prisma.user.findUnique({
+      where: { email: 'demo@monda.com' }
+    });
+
+    if (!demoUser) {
+      let customerRole = await prisma.role.findUnique({
+        where: { name: 'CUSTOMER' }
+      });
+
+      if (!customerRole) {
+        customerRole = await prisma.role.create({
+          data: {
+            name: 'CUSTOMER',
+            description: 'Regular customer role'
+          }
+        });
+      }
+
+      demoUser = await prisma.user.create({
+        data: {
+          email: 'demo@monda.com',
+          password: 'demo123',
+          name: 'Demo Customer',
+          phone: '+254700000000',
+          roles: {
+            create: {
+              roleId: customerRole.id
+            }
+          }
+        }
+      });
+    }
+
     // Calculate total
     let total = 0;
     const orderItems = [];
@@ -1708,11 +1826,34 @@ app.post('/api/demo/order', async (req, res) => {
       }
     }
 
+    // If no items were found, create a default demo item
+    if (orderItems.length === 0) {
+      let fallback = await prisma.menuItem.findUnique({ where: { id: 'demo-item-1' } });
+      if (!fallback) {
+        fallback = await prisma.menuItem.create({
+          data: {
+            id: 'demo-item-1',
+            name: 'Demo Burger',
+            description: 'A delicious demo burger for testing',
+            price: 1250,
+            category: 'Fast Food',
+            rating: 4.5,
+            isAvailable: true,
+            isPopular: false,
+            isSpicy: false,
+            isVegetarian: false
+          }
+        });
+      }
+      orderItems.push({ menuItemId: fallback.id, quantity: 1, price: fallback.price });
+      total = fallback.price;
+    }
+
     // Create order with items
     const order = await prisma.order.create({
       data: {
         orderNumber,
-        userId: 'demo-user',
+        userId: demoUser.id,
         status: 'PENDING',
         total,
         paymentMethod: 'CASH',
@@ -1945,7 +2086,7 @@ app.post('/api/demo/order', async (req, res) => {
     
     // Ensure demo user exists
     let demoUser = await prisma.user.findUnique({
-      where: { id: 'demo-user' }
+      where: { email: 'demo@monda.com' }
     });
     
     if (!demoUser) {
@@ -1965,7 +2106,6 @@ app.post('/api/demo/order', async (req, res) => {
       
       demoUser = await prisma.user.create({
         data: {
-          id: 'demo-user',
           email: 'demo@monda.com',
           password: 'demo123',
           name: 'Demo Customer',
@@ -2004,7 +2144,7 @@ app.post('/api/demo/order', async (req, res) => {
     const demoOrder = await prisma.order.create({
       data: {
         orderNumber,
-        userId: 'demo-user',
+        userId: demoUser.id,
         status: 'PENDING',
         total: 2500,
         paymentMethod: 'CASH',
