@@ -1116,6 +1116,15 @@ app.post('/api/orders', async (req, res) => {
       });
     }
 
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
     // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
@@ -1849,7 +1858,17 @@ app.post('/api/admin/sync-menu', async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const frontendMenuItems = [
+    const frontendMenuItems: Array<{
+      id: string;
+      name: string;
+      description: string;
+      price: number;
+      category: string;
+      rating: number;
+      isPopular: boolean;
+      isSpicy: boolean;
+      isVegetarian: boolean;
+    }> = [
       { id: 'ribs-1', name: 'Tender BBQ Ribs', description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce', price: 4000, category: 'Premium', rating: 5.0, isPopular: true, isSpicy: false, isVegetarian: false },
       { id: 'steak-1', name: 'Premium Steak Combo', description: 'Perfectly grilled premium beef steak with seasonal vegetables', price: 8000, category: 'Premium', rating: 4.9, isPopular: true, isSpicy: false, isVegetarian: false },
       { id: 'nyama-1', name: 'Nyama Choma Special', description: 'Authentic Kenyan roasted goat meat with kachumbari', price: 1800, category: 'African Specials', rating: 4.9, isPopular: true, isSpicy: true, isVegetarian: false },
@@ -1923,6 +1942,64 @@ app.post('/api/admin/sync-menu', async (req, res) => {
 app.post('/api/demo/order', async (req, res) => {
   try {
     const orderNumber = `DEMO-${Date.now()}`;
+    
+    // Ensure demo user exists
+    let demoUser = await prisma.user.findUnique({
+      where: { id: 'demo-user' }
+    });
+    
+    if (!demoUser) {
+      // First, ensure the CUSTOMER role exists
+      let customerRole = await prisma.role.findUnique({
+        where: { name: 'CUSTOMER' }
+      });
+      
+      if (!customerRole) {
+        customerRole = await prisma.role.create({
+          data: {
+            name: 'CUSTOMER',
+            description: 'Regular customer role'
+          }
+        });
+      }
+      
+      demoUser = await prisma.user.create({
+        data: {
+          id: 'demo-user',
+          email: 'demo@monda.com',
+          password: 'demo123',
+          name: 'Demo Customer',
+          phone: '+254700000000',
+          roles: {
+            create: {
+              roleId: customerRole.id
+            }
+          }
+        }
+      });
+    }
+    
+    // Ensure demo menu item exists
+    let demoMenuItem = await prisma.menuItem.findUnique({
+      where: { id: 'demo-item-1' }
+    });
+    
+    if (!demoMenuItem) {
+      demoMenuItem = await prisma.menuItem.create({
+        data: {
+          id: 'demo-item-1',
+          name: 'Demo Burger',
+          description: 'A delicious demo burger for testing',
+          price: 1250,
+          category: 'Fast Food',
+          rating: 4.5,
+          isAvailable: true,
+          isPopular: false,
+          isSpicy: false,
+          isVegetarian: false
+        }
+      });
+    }
     
     const demoOrder = await prisma.order.create({
       data: {
