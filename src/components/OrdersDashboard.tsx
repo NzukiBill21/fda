@@ -19,7 +19,8 @@ import {
   Calendar,
   TrendingUp,
   Users,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -103,6 +104,7 @@ const OrdersDashboard: React.FC = () => {
     { value: 'PENDING', label: 'Pending' },
     { value: 'CONFIRMED', label: 'Confirmed' },
     { value: 'PREPARING', label: 'Preparing' },
+    { value: 'READY', label: 'Ready for Pickup' },
     { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
     { value: 'DELIVERED', label: 'Delivered' },
     { value: 'CANCELLED', label: 'Cancelled' }
@@ -110,7 +112,7 @@ const OrdersDashboard: React.FC = () => {
 
   const fetchDeliveryGuys = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) return;
       
       const response = await fetch('http://localhost:5000/api/admin/users', {
@@ -134,7 +136,7 @@ const OrdersDashboard: React.FC = () => {
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
         console.log('No auth token found, skipping orders fetch');
         return;
@@ -175,7 +177,7 @@ const OrdersDashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
         console.log('No auth token found, skipping stats fetch');
         return;
@@ -224,7 +226,7 @@ const OrdersDashboard: React.FC = () => {
 
   const assignToDeliveryGuy = async (orderId: string, deliveryGuyId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/assign`, {
         method: 'PUT',
         headers: {
@@ -284,7 +286,7 @@ const OrdersDashboard: React.FC = () => {
 
   const updateOrderStatus = async (orderId: string, status: string, notes?: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
@@ -314,10 +316,251 @@ const OrdersDashboard: React.FC = () => {
       case 'PENDING': return 'text-yellow-600 bg-yellow-100';
       case 'CONFIRMED': return 'text-blue-600 bg-blue-100';
       case 'PREPARING': return 'text-purple-600 bg-purple-100';
+      case 'READY': return 'text-green-600 bg-green-100';
       case 'OUT_FOR_DELIVERY': return 'text-orange-600 bg-orange-100';
       case 'DELIVERED': return 'text-green-600 bg-green-100';
       case 'CANCELLED': return 'text-red-600 bg-red-100';
       default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Export Functions
+  const exportToCSV = () => {
+    const headers = ['Order Number', 'Customer Name', 'Phone', 'Status', 'Total (KES)', 'Items', 'Date', 'Address'];
+    const rows = filteredOrders.map(order => [
+      order.orderNumber,
+      order.customerName,
+      order.customerPhone,
+      order.status,
+      order.total,
+      order.items.map(item => `${item.quantity}x ${item.menuItem.name}`).join('; '),
+      new Date(order.createdAt).toLocaleString(),
+      order.deliveryAddress
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `mondas_orders_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('CSV exported successfully!');
+  };
+
+  const exportToExcel = () => {
+    // For Excel, we'll create a CSV with Excel-compatible formatting
+    const headers = ['Order Number', 'Customer Name', 'Phone', 'Status', 'Total (KES)', 'Items', 'Date', 'Address'];
+    const rows = filteredOrders.map(order => [
+      order.orderNumber,
+      order.customerName,
+      order.customerPhone,
+      order.status,
+      order.total,
+      order.items.map(item => `${item.quantity}x ${item.menuItem.name}`).join('; '),
+      new Date(order.createdAt).toLocaleString(),
+      order.deliveryAddress
+    ]);
+
+    const csvContent = [
+      headers.join('\t'),
+      ...rows.map(row => row.map(cell => String(cell)).join('\t'))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `mondas_orders_${new Date().toISOString().split('T')[0]}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Excel file exported successfully!');
+  };
+
+  const exportToPDF = async () => {
+    // Create a printable HTML report
+    const reportHTML = `
+      <html>
+        <head>
+          <title>Mondas Orders Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #dc2626; }
+            h2 { color: #ea580c; margin-top: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f97316; color: white; }
+            .stats { display: flex; gap: 20px; margin: 20px 0; }
+            .stat-box { border: 2px solid #dc2626; padding: 15px; border-radius: 8px; }
+          </style>
+        </head>
+        <body>
+          <h1>Mondas Snack Bar - Orders Report</h1>
+          <p>Generated: ${new Date().toLocaleString()}</p>
+          
+          ${stats ? `
+          <h2>Summary Statistics</h2>
+          <div class="stats">
+            <div class="stat-box">
+              <strong>Total Orders:</strong> ${stats.totalOrders}
+            </div>
+            <div class="stat-box">
+              <strong>Pending:</strong> ${stats.pendingOrders}
+            </div>
+            <div class="stat-box">
+              <strong>Delivered:</strong> ${stats.deliveredOrders}
+            </div>
+            <div class="stat-box">
+              <strong>Total Revenue:</strong> KES ${stats.totalRevenue.toLocaleString('en-KE')}
+            </div>
+          </div>
+          ` : ''}
+          
+          <h2>Orders List (${filteredOrders.length} orders)</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Total (KES)</th>
+                <th>Items</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredOrders.map(order => `
+                <tr>
+                  <td>${order.orderNumber}</td>
+                  <td>${order.customerName}</td>
+                  <td>${order.customerPhone}</td>
+                  <td>${order.status}</td>
+                  <td>${order.total.toLocaleString('en-KE')}</td>
+                  <td>${order.items.map(item => `${item.quantity}x ${item.menuItem.name}`).join(', ')}</td>
+                  <td>${new Date(order.createdAt).toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    // Open in new window for printing/saving as PDF
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(reportHTML);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+        toast.success('PDF ready for download! Use Print > Save as PDF');
+      }, 500);
+    }
+  };
+
+  const exportToPNG = async () => {
+    try {
+      // Create a canvas with the stats visualization
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 800;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        toast.error('Failed to create image');
+        return;
+      }
+
+      // Background
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Title
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 48px Arial';
+      ctx.fillText('Mondas Snack Bar - Orders Dashboard', 50, 60);
+      ctx.fillStyle = '#666';
+      ctx.font = '24px Arial';
+      ctx.fillText(new Date().toLocaleString(), 50, 100);
+
+      // Stats
+      if (stats) {
+        let yPos = 180;
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#333';
+        ctx.fillText('Key Performance Indicators', 50, yPos);
+        
+        yPos += 60;
+        const statsData = [
+          ['Total Orders', stats.totalOrders],
+          ['Pending Orders', stats.pendingOrders],
+          ['Delivered Orders', stats.deliveredOrders],
+          ['Total Revenue', `KES ${stats.totalRevenue.toLocaleString('en-KE')}`],
+          ['Out for Delivery', stats.outForDeliveryOrders || 0]
+        ];
+
+        statsData.forEach(([label, value], index) => {
+          const x = 50 + (index % 3) * 350;
+          const y = yPos + Math.floor(index / 3) * 120;
+          
+          ctx.fillStyle = '#dc2626';
+          ctx.font = 'bold 36px Arial';
+          ctx.fillText(String(value), x, y);
+          ctx.fillStyle = '#666';
+          ctx.font = '18px Arial';
+          ctx.fillText(label, x, y + 40);
+        });
+      }
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const link = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', `mondas_dashboard_${new Date().toISOString().split('T')[0]}.png`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast.success('PNG dashboard exported successfully!');
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('PNG export error:', error);
+      toast.error('Failed to export PNG');
+    }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf' | 'png') => {
+    if (filteredOrders.length === 0) {
+      toast.error('No orders to export');
+      return;
+    }
+
+    switch (format) {
+      case 'csv':
+        exportToCSV();
+        break;
+      case 'excel':
+        exportToExcel();
+        break;
+      case 'pdf':
+        exportToPDF();
+        break;
+      case 'png':
+        exportToPNG();
+        break;
     }
   };
 
@@ -420,9 +663,9 @@ const OrdersDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters and Export */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -448,6 +691,42 @@ const OrdersDashboard: React.FC = () => {
               ))}
             </select>
           </div>
+        </div>
+        
+        {/* Export Buttons */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm font-semibold text-gray-700">Export:</span>
+          <button
+            onClick={() => handleExport('csv')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            CSV
+          </button>
+          <button
+            onClick={() => handleExport('excel')}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Excel
+          </button>
+          <button
+            onClick={() => handleExport('pdf')}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center gap-2 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            PDF
+          </button>
+          <button
+            onClick={() => handleExport('png')}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold flex items-center gap-2 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            PNG Dashboard
+          </button>
+          <span className="text-xs text-gray-500 ml-2">
+            ({filteredOrders.length} orders)
+          </span>
         </div>
       </div>
 

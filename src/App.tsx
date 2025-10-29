@@ -7,6 +7,7 @@ import { CheckoutDialog, OrderDetails } from './components/CheckoutDialog';
 import { ReviewsSection } from './components/ReviewsSection';
 import { DeliveryTracker } from './components/DeliveryTracker';
 import { ReviewDialog } from './components/ReviewDialog';
+import { DeliveryConfirmationDialog } from './components/DeliveryConfirmationDialog';
 import { AIRecommendations } from './components/AIRecommendations';
 import { Footer } from './components/Footer';
 import { BackendStatus } from './components/BackendStatus';
@@ -38,10 +39,12 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isDeliveryConfirmationOpen, setIsDeliveryConfirmationOpen] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [showSlideshow, setShowSlideshow] = useState(true);
   const [deliveryComplete, setDeliveryComplete] = useState(false);
+  const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
 
   // Authentication state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -300,8 +303,8 @@ export default function App() {
 
   if (isCaterer && authToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900">
-        <CatererDashboard token={authToken} user={user} />
+      <div className="min-h-screen">
+        <CatererDashboard token={authToken} user={user} onLogout={handleLogout} />
         <BackendStatus />
         <AuthDialog
           isOpen={isAuthOpen}
@@ -431,7 +434,7 @@ export default function App() {
                 onDeliveryComplete={() => {
                   if (!deliveryComplete) {
                     setDeliveryComplete(true);
-                    setIsReviewOpen(true);
+                    setIsDeliveryConfirmationOpen(true);
                   }
                 }}
               />
@@ -483,15 +486,31 @@ export default function App() {
         onConfirmOrder={handleConfirmOrder}
       />
 
+      <DeliveryConfirmationDialog
+        isOpen={isDeliveryConfirmationOpen}
+        onClose={() => setIsDeliveryConfirmationOpen(false)}
+        orderId={orderId}
+        onConfirm={() => {
+          setIsDeliveryConfirmationOpen(false);
+          setDeliveryConfirmed(true);
+          setIsReviewOpen(true);
+          toast.success('✅ Delivery confirmed! Thank you for confirming.');
+        }}
+      />
+
       <ReviewDialog
-        isOpen={isReviewOpen}
-        onClose={() => setIsReviewOpen(false)}
+        isOpen={isReviewOpen && deliveryConfirmed}
+        onClose={() => {
+          setIsReviewOpen(false);
+          setDeliveryConfirmed(false);
+        }}
         orderId={orderId}
         onSubmitReview={() => {
           setIsReviewOpen(false);
           setOrderPlaced(false);
           setOrderDetails(null);
           setDeliveryComplete(false);
+          setDeliveryConfirmed(false);
           toast.success('Thank you for your review!');
         }}
       />

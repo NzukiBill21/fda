@@ -413,17 +413,40 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {statCards.map((stat, index) => {
               const Icon = stat.icon;
+              
+              // Determine which tab to navigate to based on stat title
+              const handleCardClick = () => {
+                if (stat.title === 'Total Orders' || stat.title === 'Pending Orders' || stat.title === 'Completed' || stat.title === 'Canceled Orders') {
+                  setActiveTab('orders');
+                  toast.success(`Viewing ${stat.title.toLowerCase()}...`);
+                } else if (stat.title === 'Active Users' || stat.title === 'Total Users') {
+                  setActiveTab('users');
+                  toast.success(`Viewing users management...`);
+                } else if (stat.title === 'Menu Items' || stat.title.includes('Menu')) {
+                  setActiveTab('menu');
+                  toast.success(`Viewing menu management...`);
+                } else if (stat.title === 'Total Revenue' || stat.title === 'Revenue (KES)' || stat.title.includes('Revenue') || stat.title === 'Avg Order Value') {
+                  setActiveTab('analytics');
+                  toast.success(`Viewing revenue analytics...`);
+                } else if (stat.title === 'Delivery Team') {
+                  setActiveTab('delivery');
+                  toast.success(`Viewing delivery team...`);
+                }
+              };
+              
               return (
                 <motion.div
                   key={stat.title}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  whileHover={{ y: -5 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCardClick}
                   className="relative group cursor-pointer"
                 >
                   <div className={`absolute -inset-0.5 ${stat.bgGlow} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-300`} />
-                  <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 group-hover:border-yellow-400 transition-all h-full">
+                  <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 group-hover:border-yellow-400 transition-all h-full hover:shadow-yellow-500/20">
                     <div className="flex items-center justify-between mb-4">
                       <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
                         <Icon className="w-7 h-7 text-white" />

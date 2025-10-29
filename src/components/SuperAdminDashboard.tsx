@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Users, ShoppingBag, Database, DollarSign, Settings, Shield, Activity, Zap, Flame, TrendingUp, Package, BarChart3, UserPlus, UserMinus, Edit, Trash2, RefreshCw, Download, Upload, Eye, Lock, Unlock, AlertTriangle, CheckCircle, Code, Terminal, Server, Cpu, HardDrive, Network, GitBranch, Bug, Monitor, Smartphone, Globe, Wifi, WifiOff, Play, Pause, Square } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Users, ShoppingBag, Database, DollarSign, Settings, Shield, Activity, Zap, Flame, TrendingUp, Package, BarChart3, UserPlus, UserMinus, Edit, Trash2, RefreshCw, Download, Upload, Eye, Lock, Unlock, AlertTriangle, CheckCircle, Code, Terminal, Server, Cpu, HardDrive, Network, GitBranch, Bug, Monitor, Smartphone, Globe, Wifi, WifiOff, Play, Pause, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
 import MenuEditor from './MenuEditor';
+import OrdersDashboard from './OrdersDashboard';
 
 interface SuperAdminDashboardProps {
   token: string;
@@ -52,6 +53,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
   });
   const [confirmAction, setConfirmAction] = useState(null);
   const [showMenuEditor, setShowMenuEditor] = useState(false);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [devTools, setDevTools] = useState({
     terminal: false,
     logs: false,
@@ -576,16 +578,37 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stats-grid">
             {statCards.map((stat, index) => {
               const Icon = stat.icon;
+              
+              // Handle card click to navigate to relevant tab
+              const handleCardClick = () => {
+                if (stat.title === 'Total Orders') {
+                  setShowOrdersModal(true);
+                  toast.success('Opening Orders Dashboard...');
+                } else if (stat.title === 'Total Users') {
+                  setActiveTab('users');
+                  toast.success('Viewing users management...');
+                } else if (stat.title === 'Menu Items') {
+                  setActiveTab('menu');
+                  toast.success('Viewing menu management...');
+                } else if (stat.title === 'Revenue (KES)') {
+                  // Revenue analytics - can add a revenue/analytics view later
+                  toast.success('Revenue overview - See details in Orders Dashboard');
+                }
+              };
+              
               return (
                 <motion.div
                   key={stat.title}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="relative group"
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCardClick}
+                  className="relative group cursor-pointer"
                 >
                   <div className={`absolute -inset-0.5 ${stat.bgGlow} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-300`} />
-                  <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 hover:border-yellow-400 transition-all dashboard-card">
+                  <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 hover:border-yellow-400 transition-all dashboard-card hover:shadow-yellow-500/20">
                     <div className="flex items-center justify-between mb-4">
                       <div className={`w-14 h-14 rounded-xl ${stat.bgColor} flex items-center justify-center shadow-lg`}>
                         <Icon className="w-7 h-7 text-white" />
@@ -1318,6 +1341,58 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           onClose={() => setShowMenuEditor(false)}
         />
       )}
+
+      {/* Orders Dashboard Modal */}
+      <AnimatePresence>
+        {showOrdersModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4"
+            onClick={() => setShowOrdersModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gradient-to-br from-orange-900/95 via-red-900/95 to-yellow-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl border-4 border-yellow-500/50 w-full max-w-[95vw] sm:max-w-[90vw] h-[95vh] sm:h-[90vh] flex flex-col overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b-4 border-yellow-500/50 bg-gradient-to-r from-red-600 to-orange-600">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 bg-white/20 rounded-xl">
+                    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white" style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.3)' }}>
+                      ORDERS MANAGEMENT
+                    </h2>
+                    <p className="text-white/90 text-xs sm:text-sm md:text-base font-semibold">Full Orders Dashboard with Export</p>
+                  </div>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowOrdersModal(false)}
+                  className="p-2 sm:p-3 bg-white/20 hover:bg-white/30 rounded-xl text-white transition-all"
+                  title="Close"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                </motion.button>
+              </div>
+
+              {/* Orders Dashboard Content */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl border-4 border-white/50">
+                  <OrdersDashboard />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

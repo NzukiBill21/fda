@@ -908,12 +908,12 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                       </div>
 
                       <div className="flex gap-2">
-                        {order.status === 'CONFIRMED' && (
+                        {(order.status === 'READY' || order.status === 'CONFIRMED') && (
                           <button
-                            onClick={() => updateOrderStatus(order.id, 'OUT_FOR_DELIVERY', 'Picked up order, heading to customer')}
-                            className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-blue-600 hover:to-cyan-600 transition-all active:scale-95"
+                            onClick={() => handleAcceptOrder(order.id)}
+                            className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all active:scale-95"
                           >
-                            🚚 Start Delivery
+                            {order.status === 'READY' ? '✅ Pick Up & Deliver' : '🚚 Start Delivery'}
                           </button>
                         )}
                         {order.status === 'OUT_FOR_DELIVERY' && (
@@ -925,7 +925,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
                               <Map className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => updateOrderStatus(order.id, 'DELIVERED', 'Order delivered successfully')}
+                              onClick={() => handleCompleteOrder(order.id)}
                               className="flex-1 px-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-base sm:text-lg shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all active:scale-95"
                             >
                               ✓ Mark Delivered
