@@ -28,6 +28,7 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState('DELIVERY_GUY');
+  const roleOptions = ['DELIVERY_GUY', 'CATERER', 'ADMIN', 'USER'];
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -129,13 +130,27 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
       return;
     }
 
-    const loadingToast = toast.loading('Assigning role...');
+    const loadingToast = toast.loading('Assigning role...', {
+      duration: 3000, // Auto-dismiss after 3 seconds as fallback
+    });
+    
+    // Set a timeout to dismiss loading toast if it takes too long
+    const timeoutId = setTimeout(() => {
+      toast.dismiss(loadingToast);
+    }, 5000);
     
     try {
+      // Add timeout to fetch requests
+      const controller1 = new AbortController();
+      const fetchTimeout1 = setTimeout(() => controller1.abort(), 8000);
+      
       // First, find the user by email
       const usersRes = await fetch('http://localhost:5000/api/admin/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller1.signal
       });
+      
+      clearTimeout(fetchTimeout1);
       const usersData = await usersRes.json();
       
       if (!usersData.success) {
@@ -148,21 +163,27 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
       }
       
       // Promote the user to the selected role
+      const controller2 = new AbortController();
+      const fetchTimeout2 = setTimeout(() => controller2.abort(), 8000);
+      
       const promoteRes = await fetch(`http://localhost:5000/api/admin/users/${user.id}/promote`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ role: selectedRole })
+        body: JSON.stringify({ role: selectedRole }),
+        signal: controller2.signal
       });
       
+      clearTimeout(fetchTimeout2);
       const promoteData = await promoteRes.json();
       
       if (!promoteRes.ok) {
         throw new Error(promoteData.error || 'Failed to assign role');
       }
       
+      clearTimeout(timeoutId);
       toast.dismiss(loadingToast);
       toast.success(`✅ Role "${selectedRole}" assigned to ${userEmail}`, {
         description: 'User permissions updated successfully',
@@ -173,9 +194,11 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
       fetchData(); // Refresh data
       fetchUsers(); // Refresh users list
     } catch (error: any) {
+      clearTimeout(timeoutId);
       toast.dismiss(loadingToast);
+      const errorMsg = error.name === 'AbortError' ? 'Request timed out. Backend may be offline.' : (error.message || 'Please try again');
       toast.error('Failed to assign role', {
-        description: error.message || 'Please try again',
+        description: errorMsg,
         duration: 3000,
       });
     }
@@ -458,11 +481,12 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
                   onClick={() => setShowRoleDropdown(!showRoleDropdown)}
                   className="w-full px-5 py-4 rounded-xl bg-white/90 text-gray-900 border-2 border-white/50 focus:border-yellow-400 outline-none font-semibold shadow-lg flex items-center justify-between"
                 >
-                  <span>
+                  <span className={selectedRole ? 'text-gray-900' : 'text-gray-500'}>
                     {selectedRole === 'DELIVERY_GUY' && '🚗 Delivery Guy'}
-                    {selectedRole === 'SUB_ADMIN' && '⚙️ Sub-Admin'}
+                    {selectedRole === 'CATERER' && '👨‍🍳 Caterer / Kitchen Staff'}
                     {selectedRole === 'USER' && '🛍️ Customer'}
                     {selectedRole === 'ADMIN' && '💼 Admin'}
+                    {!selectedRole && 'Select a role...'}
                   </span>
                   <ChevronDown className={`w-5 h-5 transition-transform ${showRoleDropdown ? 'rotate-180' : ''}`} />
                 </button>
@@ -474,7 +498,7 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
                       exit={{ opacity: 0, y: -10 }}
                       className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border-2 border-gray-200 overflow-hidden"
                     >
-                      {['DELIVERY_GUY', 'SUB_ADMIN', 'USER', 'ADMIN'].map((role) => (
+                      {roleOptions.map((role) => (
                         <button
                           key={role}
                           onClick={() => {
@@ -484,7 +508,7 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
                           className="w-full px-5 py-3 text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-yellow-50 transition-all text-gray-900 font-semibold"
                         >
                           {role === 'DELIVERY_GUY' && '🚗 Delivery Guy'}
-                          {role === 'SUB_ADMIN' && '⚙️ Sub-Admin'}
+                          {role === 'CATERER' && '👨‍🍳 Caterer / Kitchen Staff'}
                           {role === 'USER' && '🛍️ Customer'}
                           {role === 'ADMIN' && '💼 Admin'}
                         </button>

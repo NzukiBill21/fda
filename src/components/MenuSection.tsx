@@ -23,6 +23,55 @@ interface MenuSectionProps {
   onAddToCart: (item: MenuItem) => void;
 }
 
+// Function to get appropriate Unsplash image for menu items
+const getUnsplashImageForMenuItem = (name: string, category: string): string => {
+  const imageMap: { [key: string]: string } = {
+    // Burgers
+    'burger': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    'egbo': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    'deluxe': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    
+    // Pasta
+    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    'carbonara': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    'spaghetti': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    
+    // Salad
+    'caesar': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&h=800&fit=crop&q=85',
+    'salad': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&h=800&fit=crop&q=85',
+    
+    // Pizza
+    'pizza': 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=1200&h=800&fit=crop&q=85',
+    
+    // Generic food fallback
+    'delicious': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85',
+    'offer': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85',
+  };
+  
+  const lowerName = name.toLowerCase();
+  for (const [key, url] of Object.entries(imageMap)) {
+    if (lowerName.includes(key)) {
+      return url;
+    }
+  }
+  
+  // Category-based fallback
+  const categoryMap: { [key: string]: string } = {
+    'Premium': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&h=800&fit=crop&q=85',
+    'African Specials': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&h=800&fit=crop&q=85',
+    'Burgers': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    'Pizza': 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=1200&h=800&fit=crop&q=85',
+    'Pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    'Salads': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&h=800&fit=crop&q=85',
+    'Chicken': 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=1200&h=800&fit=crop&q=85',
+    'Drinks': 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=1200&h=800&fit=crop&q=85',
+    'Snacks': 'https://images.unsplash.com/photo-1582169296194-e4d644c48063?w=1200&h=800&fit=crop&q=85',
+    'Hot Dogs': 'https://images.unsplash.com/photo-1612392062798-2ad99e4f4e7e?w=1200&h=800&fit=crop&q=85',
+  };
+  
+  return categoryMap[category] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85';
+};
+
 export const menuItems: MenuItem[] = [
   // Premium
   {
@@ -231,7 +280,9 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
             name: item.name,
             description: item.description || '',
             price: item.price,
-            image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85',
+            image: item.image && !item.image.includes('placeholder') && !item.image.includes('via.placeholder') 
+              ? item.image 
+              : getUnsplashImageForMenuItem(item.name, item.category),
             category: item.category,
             rating: item.rating || 4.5,
             reviews: 0,
@@ -513,7 +564,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                               letterSpacing: '-0.02em'
                             }}
                           >
-                            {item.price >= 1000 ? `${(item.price / 1000).toFixed(1)}k` : item.price}
+                            KES {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
                         

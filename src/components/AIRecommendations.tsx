@@ -111,7 +111,7 @@ export function AIRecommendations({ cartItems, onAddToCart, allMenuItems }: AIRe
               <p className="text-sm text-gray-600 line-clamp-1 mb-2">{item.description}</p>
               <div className="flex items-center justify-between">
                 <span className="text-lg bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent" style={{ fontWeight: '700' }}>
-                  KSh {item.price >= 1000 ? `${(item.price / 1000).toFixed(1)}k` : item.price}
+                  KES {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </span>
                 <button
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm hover:shadow-lg transition-all"

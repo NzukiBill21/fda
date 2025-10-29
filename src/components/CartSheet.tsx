@@ -89,8 +89,9 @@ export function CartSheet({
   const [selectedAddOnCategory, setSelectedAddOnCategory] = useState<'drinks' | 'sides' | 'desserts'>('drinks');
   
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = subtotal > 0 ? 200 : 0;
-  const total = subtotal + deliveryFee;
+  const deliveryFee = subtotal > 5000 ? 0 : 200; // Free delivery for orders over KES 5,000
+  const tax = subtotal * 0.16; // 16% VAT
+  const total = subtotal + deliveryFee + tax;
 
   const handleCheckout = () => {
     onCheckout();
@@ -155,15 +156,15 @@ export function CartSheet({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: index * 0.05 }}
-                        className="flex gap-4 p-4 rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-gray-200/50 shadow-lg hover:shadow-xl transition-all"
+                        className="group flex gap-4 p-4 rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-gray-200/50 shadow-lg hover:shadow-xl hover:border-orange-300/50 hover:scale-[1.02] transition-all duration-300"
                       >
-                        <div className="relative w-24 h-24 flex-shrink-0">
+                        <div className="relative w-24 h-24 flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
                           <ImageWithFallback
                             src={item.image}
                             alt={item.name}
-                            className="w-full h-full rounded-xl object-cover"
+                            className="w-full h-full rounded-xl object-cover shadow-md"
                           />
-                          <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent" />
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent group-hover:from-black/10 transition-all duration-300" />
                         </div>
                         
                         <div className="flex-1 min-w-0">
@@ -176,7 +177,7 @@ export function CartSheet({
                               fontFamily: 'system-ui, -apple-system, sans-serif'
                             }}
                           >
-                            KSh {item.price.toLocaleString()}
+                            KES {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </p>
                           
                           <div className="flex items-center gap-2">
@@ -200,7 +201,7 @@ export function CartSheet({
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                              className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 hover:from-red-100 hover:to-yellow-100 flex items-center justify-center transition-all shadow-md"
+                              className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
                             >
                               <Plus className="w-4 h-4" />
                             </motion.button>
@@ -267,7 +268,7 @@ export function CartSheet({
                             className="text-sm bg-gradient-to-r from-red-600 to-yellow-600 bg-clip-text text-transparent"
                             style={{ fontWeight: '600' }}
                           >
-                            +KSh {addon.price}
+                            +KES {addon.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </p>
                         </motion.div>
                       ))}
@@ -284,11 +285,15 @@ export function CartSheet({
                 <div className="space-y-3">
                   <div className="flex justify-between text-gray-700">
                     <span>Subtotal</span>
-                    <span style={{ fontWeight: '600' }}>KSh {subtotal.toLocaleString()}</span>
+                    <span style={{ fontWeight: '600' }}>KES {subtotal.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
                     <span>Delivery Fee</span>
-                    <span style={{ fontWeight: '600' }}>KSh {deliveryFee}</span>
+                    <span style={{ fontWeight: '600' }}>KES {deliveryFee.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>Tax (16%)</span>
+                    <span style={{ fontWeight: '600' }}>KES {tax.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                   </div>
                   <Separator className="bg-gradient-to-r from-red-200 to-yellow-200" />
                   <div className="flex justify-between text-xl lg:text-2xl text-gray-900">
@@ -301,7 +306,7 @@ export function CartSheet({
                         letterSpacing: '-0.02em'
                       }}
                     >
-                      KSh {total.toLocaleString()}
+                      KES {total.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
                   </div>
                 </div>

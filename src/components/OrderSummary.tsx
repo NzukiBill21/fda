@@ -54,7 +54,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-  const deliveryFee = subtotal > 50 ? 0 : 5; // Free delivery over $50
+  const deliveryFee = subtotal > 5000 ? 0 : 200; // Free delivery over KES 5,000
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + deliveryFee + tax;
 
@@ -215,7 +215,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                       <p className="text-sm text-gray-600">{item.menuItem.category}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-orange-600 font-bold">
-                          ${item.menuItem.price.toFixed(2)}
+                          KES {item.menuItem.price.toLocaleString('en-KE')}
                         </span>
                         <span className="text-gray-500">×</span>
                         <span className="text-gray-700 font-medium">{item.quantity}</span>
@@ -223,7 +223,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-gray-900">
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                        KES {(item.menuItem.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </div>
                     </div>
                   </motion.div>
@@ -324,22 +324,22 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">KES {subtotal.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fee</span>
                   <span className="font-medium">
-                    {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
+                    {deliveryFee === 0 ? 'FREE' : `KES ${deliveryFee.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax (8%)</span>
-                  <span className="font-medium">${tax.toFixed(2)}</span>
+                  <span className="font-medium">KES {tax.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span className="text-orange-600">${total.toFixed(2)}</span>
+                    <span className="text-orange-600">KES {total.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                   </div>
                 </div>
               </div>
@@ -373,7 +373,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               ) : (
                 <>
                   <CheckCircle className="w-6 h-6" />
-                  <span>Place Order - ${total.toFixed(2)}</span>
+                  <span>Place Order - KES {total.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </>
               )}
             </motion.button>

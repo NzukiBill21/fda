@@ -410,7 +410,7 @@ const OrdersDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-600">KES {stats.totalRevenue.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
                 <DollarSign className="w-6 h-6 text-green-600" />
@@ -498,7 +498,7 @@ const OrdersDashboard: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${order.total.toFixed(2)}
+                    KES {order.total.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(order.createdAt).toLocaleDateString()}
@@ -596,11 +596,11 @@ const OrdersDashboard: React.FC = () => {
                         </div>
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{item.menuItem.name}</h4>
-                          <p className="text-sm text-gray-600">${item.menuItem.price.toFixed(2)} × {item.quantity}</p>
+                          <p className="text-sm text-gray-600">KES {item.menuItem.price.toLocaleString('en-KE')} × {item.quantity}</p>
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-gray-900">
-                            ${(item.menuItem.price * item.quantity).toFixed(2)}
+                            KES {(item.menuItem.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </div>
                         </div>
                       </div>

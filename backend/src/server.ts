@@ -643,12 +643,18 @@ app.post('/api/admin/users/:userId/promote', async (req, res) => {
     
     // Get the role ID (case-insensitive lookup)
     const roleName = (role || 'ADMIN').toUpperCase();
-    const roleRecord = await prisma.role.findFirst({
+    let roleRecord = await prisma.role.findFirst({
       where: { name: roleName }
     });
 
+    // If role doesn't exist, create it (especially for CATERER which may not be seeded)
     if (!roleRecord) {
-      return res.status(400).json({ error: 'Role not found' });
+      roleRecord = await prisma.role.create({
+        data: {
+          name: roleName,
+          description: `${roleName} role`
+        }
+      });
     }
 
     // First, remove existing roles for this user
@@ -1095,6 +1101,78 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
 // ORDER ROUTES
 // ====================
 
+// Helper function to get appropriate Unsplash image for menu items
+function getMenuItemImageUrl(name: string, category: string): string {
+  const imageMap: { [key: string]: string } = {
+    // Ribs
+    'ribs': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&h=800&fit=crop&q=85',
+    'bbq': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&h=800&fit=crop&q=85',
+    // Steak
+    'steak': 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=1200&h=800&fit=crop&q=85',
+    // Nyama Choma
+    'nyama': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&h=800&fit=crop&q=85',
+    'choma': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&h=800&fit=crop&q=85',
+    // Pilau
+    'pilau': 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=1200&h=800&fit=crop&q=85',
+    'biryani': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=1200&h=800&fit=crop&q=85',
+    // Ugali
+    'ugali': 'https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?w=1200&h=800&fit=crop&q=85',
+    'sukuma': 'https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?w=1200&h=800&fit=crop&q=85',
+    // Chicken
+    'chicken': 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=1200&h=800&fit=crop&q=85',
+    'wings': 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=1200&h=800&fit=crop&q=85',
+    // Fish
+    'fish': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=1200&h=800&fit=crop&q=85',
+    'tilapia': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=1200&h=800&fit=crop&q=85',
+    // Burger
+    'burger': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    'egbo': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    'deluxe': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    // Pizza
+    'pizza': 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=1200&h=800&fit=crop&q=85',
+    'margherita': 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=1200&h=800&fit=crop&q=85',
+    // Pasta
+    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    'carbonara': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    'spaghetti': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+    // Salad
+    'salad': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&h=800&fit=crop&q=85',
+    'caesar': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=1200&h=800&fit=crop&q=85',
+    // Hot Dog
+    'hot dog': 'https://images.unsplash.com/photo-1612392062798-2ad99e4f4e7e?w=1200&h=800&fit=crop&q=85',
+    // Nachos
+    'nachos': 'https://images.unsplash.com/photo-1582169296194-e4d644c48063?w=1200&h=800&fit=crop&q=85',
+    // Fries
+    'fries': 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=1200&h=800&fit=crop&q=85',
+    // Samosa
+    'samosa': 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=1200&h=800&fit=crop&q=85',
+    // Drinks
+    'drink': 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=1200&h=800&fit=crop&q=85',
+    'soda': 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=1200&h=800&fit=crop&q=85',
+    // Milkshake
+    'milkshake': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=1200&h=800&fit=crop&q=85',
+    'shake': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=1200&h=800&fit=crop&q=85',
+  };
+  
+  const lowerName = name.toLowerCase();
+  for (const [key, url] of Object.entries(imageMap)) {
+    if (lowerName.includes(key)) {
+      return url;
+    }
+  }
+  
+  // Category-based fallback
+  const categoryMap: { [key: string]: string } = {
+    'Premium': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&h=800&fit=crop&q=85',
+    'African Specials': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&h=800&fit=crop&q=85',
+    'Main Course': 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=1200&h=800&fit=crop&q=85',
+    'Fast Food': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
+    'Italian': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=1200&h=800&fit=crop&q=85',
+  };
+  
+  return categoryMap[category] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85';
+}
+
 // Create new order (Cash on Delivery)
 app.post('/api/orders', async (req, res) => {
   try {
@@ -1110,35 +1188,80 @@ app.post('/api/orders', async (req, res) => {
       estimatedDeliveryTime
     } = req.body;
 
-    if (!userId || !items || !deliveryAddress || !customerName || !customerPhone) {
+    if (!userId || !items || !Array.isArray(items) || items.length === 0 || !deliveryAddress || !customerName || !customerPhone) {
       return res.status(400).json({ 
-        error: 'Missing required fields: userId, items, deliveryAddress, customerName, customerPhone' 
+        error: 'Missing required fields: userId, items (non-empty array), deliveryAddress, customerName, customerPhone',
+        received: {
+          hasUserId: !!userId,
+          hasItems: !!items,
+          itemsIsArray: Array.isArray(items),
+          itemsLength: Array.isArray(items) ? items.length : 0,
+          hasAddress: !!deliveryAddress,
+          hasName: !!customerName,
+          hasPhone: !!customerPhone
+        }
       });
     }
 
-    // Verify user exists
-    const user = await prisma.user.findUnique({
+    // Verify user exists - try by ID first, then by email (for backward compatibility)
+    let user = await prisma.user.findUnique({
       where: { id: userId }
     });
+    
+    // If not found by ID, try by email (for guest orders)
+    if (!user && userId.includes('@')) {
+      user = await prisma.user.findUnique({
+        where: { email: userId }
+      });
+    }
 
     if (!user) {
-      return res.status(400).json({ error: 'User not found' });
+      // Create guest user if doesn't exist
+      let customerRole = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
+      if (!customerRole) {
+        customerRole = await prisma.role.create({ data: { name: 'CUSTOMER', description: 'Regular customer role' } });
+      }
+      
+      const guestEmail = userId.includes('@') ? userId : `${userId}@monda.com`;
+      user = await prisma.user.create({
+        data: {
+          email: guestEmail,
+          password: 'guest123',
+          name: guestEmail.split('@')[0],
+          phone: null,
+          roles: { create: { roleId: customerRole.id } }
+        }
+      });
     }
 
     // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-    // Calculate total
+    // Calculate total from actual cart item prices
     let total = 0;
     const orderItems = [];
 
     for (const item of items) {
+      // Validate item structure
+      if (!item.menuItemId && !item.id) {
+        console.error('Invalid item structure:', item);
+        continue; // Skip invalid items
+      }
+      
+      const menuItemId = item.menuItemId || item.id;
+      
+      // Use price from cart (item.price) if provided, otherwise fetch from database
+      let itemPrice = item.price || 0;
       let menuItem = await prisma.menuItem.findUnique({
-        where: { id: item.menuItemId }
+        where: { id: menuItemId }
       });
 
-      // If menu item doesn't exist, create it with proper name from frontend data
-      if (!menuItem) {
+      // If menu item exists, validate/use database price
+      if (menuItem) {
+        // Use database price as source of truth, but allow cart price if item doesn't exist in DB
+        itemPrice = menuItem.price;
+      } else if (!itemPrice || itemPrice === 0) {
+      // If menu item doesn't exist and no price provided, create it
         // Map of known menu items with proper names
         const menuItemNames: { [key: string]: { name: string; description: string; price: number; category: string } } = {
           'ribs-1': { name: 'Tender BBQ Ribs', description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce', price: 4000, category: 'Premium' },
@@ -1153,20 +1276,23 @@ app.post('/api/orders', async (req, res) => {
           'pasta-1': { name: 'Spaghetti Carbonara', description: 'Creamy pasta with bacon and parmesan', price: 1600, category: 'Italian' }
         };
 
-        const itemData = menuItemNames[item.menuItemId] || {
-          name: `Delicious ${item.menuItemId.replace('-', ' ').replace(/\d+/g, '').trim()}`,
+        // Use price from cart item, or fallback to reasonable default
+        const fallbackPrice = item.price || 500;
+        const itemData = menuItemNames[menuItemId] || {
+          name: `Delicious ${menuItemId.replace('-', ' ').replace(/\d+/g, '').trim()}`,
           description: 'Fresh and delicious meal prepared with care',
-          price: 1000,
+          price: fallbackPrice,
           category: 'Custom'
         };
+        itemPrice = itemData.price;
 
         menuItem = await prisma.menuItem.create({
           data: {
-            id: item.menuItemId,
+            id: menuItemId,
             name: itemData.name,
             description: itemData.description,
             price: itemData.price,
-            image: 'https://via.placeholder.com/150',
+            image: getMenuItemImageUrl(itemData.name, itemData.category),
             category: itemData.category,
             rating: 4.5,
             isAvailable: true,
@@ -1179,111 +1305,38 @@ app.post('/api/orders', async (req, res) => {
         });
       }
 
+      if (!menuItem) {
+        return res.status(400).json({ error: `Menu item ${menuItemId} not found` });
+      }
+
       if (!menuItem.isAvailable) {
         return res.status(400).json({ error: `Menu item ${menuItem.name} is not available` });
       }
 
-      const itemTotal = menuItem.price * item.quantity;
+      // Calculate item total using the validated price
+      const itemQuantity = item.quantity || 1;
+      const itemTotal = itemPrice * itemQuantity;
       total += itemTotal;
 
       orderItems.push({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        price: menuItem.price
+        menuItemId: menuItemId,
+        quantity: itemQuantity,
+        price: itemPrice // Use the validated/calculated price
       });
     }
 
-    // Ensure demo user exists (avoid FK error on userId)
-    let demoUserRef = await prisma.user.findUnique({ where: { id: 'demo-user' } });
-    if (!demoUserRef) {
-      // Ensure CUSTOMER role exists
-      let customerRoleRef = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
-      if (!customerRoleRef) {
-        customerRoleRef = await prisma.role.create({ data: { name: 'CUSTOMER', description: 'Regular customer role' } });
-      }
-      demoUserRef = await prisma.user.create({
-        data: {
-          id: 'demo-user',
-          email: 'demo@monda.com',
-          password: 'demo123',
-          name: 'Demo Customer',
-          phone: '+254700000000',
-          roles: { create: { roleId: customerRoleRef.id } }
-        }
-      });
-    }
-
-    // If we failed to resolve any menu items from incoming items, create a default demo item
-    if (orderItems.length === 0) {
-      let fallbackItem = await prisma.menuItem.findUnique({ where: { id: 'demo-item-1' } });
-      if (!fallbackItem) {
-        fallbackItem = await prisma.menuItem.create({
-          data: {
-            id: 'demo-item-1',
-            name: 'Demo Burger',
-            description: 'A delicious demo burger for testing',
-            price: 1250,
-            category: 'Fast Food',
-            rating: 4.5,
-            isAvailable: true,
-            isPopular: false,
-            isSpicy: false,
-            isVegetarian: false
-          }
-        });
-      }
-      orderItems.push({ menuItemId: fallbackItem.id, quantity: 1, price: fallbackItem.price });
-      total = fallbackItem.price;
-    }
-
-    // Ensure demo user exists (avoid FK error on userId)
-    let demoUser = await prisma.user.findUnique({ where: { email: 'demo@monda.com' } });
-    if (!demoUser) {
-      let customerRole = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
-      if (!customerRole) {
-        customerRole = await prisma.role.create({ data: { name: 'CUSTOMER', description: 'Regular customer role' } });
-      }
-      demoUser = await prisma.user.create({
-        data: {
-          email: 'demo@monda.com',
-          password: 'demo123',
-          name: 'Demo Customer',
-          phone: '+254700000000',
-          roles: { create: { roleId: customerRole.id } }
-        }
-      });
-    }
-
-    // If we failed to resolve any menu items, add a fallback
-    if (orderItems.length === 0) {
-      let fallback = await prisma.menuItem.findUnique({ where: { id: 'demo-item-1' } });
-      if (!fallback) {
-        fallback = await prisma.menuItem.create({
-          data: {
-            id: 'demo-item-1',
-            name: 'Demo Burger',
-            description: 'A delicious demo burger for testing',
-            price: 1250,
-            category: 'Fast Food',
-            rating: 4.5,
-            isAvailable: true,
-            isPopular: false,
-            isSpicy: false,
-            isVegetarian: false
-          }
-        });
-      }
-      orderItems.push({ menuItemId: fallback.id, quantity: 1, price: fallback.price });
-      total = fallback.price;
-    }
+    // Add delivery fee and tax
+    const deliveryFee = total > 5000 ? 0 : 200; // Free delivery over KES 5,000
+    const tax = total * 0.16; // 16% VAT
+    const finalTotal = total + deliveryFee + tax;
 
     // Create order with items
     const order = await prisma.order.create({
       data: {
         orderNumber,
-        userId,
+        userId: user.id, // Use the resolved user's ID
         status: 'PENDING',
-        total,
+        total: finalTotal,
         paymentMethod: 'CASH',
         deliveryAddress,
         deliveryNotes,
@@ -1328,7 +1381,7 @@ app.post('/api/orders', async (req, res) => {
         userId,
         action: 'ORDER_CREATED',
         entity: 'Order',
-        details: `Order ${orderNumber} created with ${items.length} items, total: $${total}`
+        details: `Order ${orderNumber} created with ${items.length} items, total: KES ${finalTotal}`
       }
     });
 
@@ -1510,7 +1563,7 @@ app.put('/api/admin/orders/:id/status', async (req, res) => {
       return res.status(400).json({ error: 'Status is required' });
     }
 
-    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
@@ -1588,10 +1641,17 @@ app.get('/api/delivery/orders', async (req, res) => {
     const orders = await prisma.order.findMany({
       where: {
         OR: [
+          // Orders assigned to this delivery guy
           { deliveryGuyId: decoded.userId },
-          { 
-            status: 'OUT_FOR_DELIVERY',
-            deliveryGuyId: null
+          // OR unassigned orders that are READY for delivery
+          {
+            deliveryGuyId: null,
+            status: 'READY'
+          },
+          // OR orders out for delivery assigned to this guy
+          {
+            deliveryGuyId: decoded.userId,
+            status: 'OUT_FOR_DELIVERY'
           }
         ]
       },
@@ -1635,6 +1695,239 @@ app.get('/api/delivery/orders', async (req, res) => {
 
   } catch (error: any) {
     console.error('Get delivery orders error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get orders for caterer (PREPARING and PENDING orders)
+app.get('/api/caterer/orders', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    // Check if user has CATERER role or ADMIN role (admins can also manage kitchen)
+    const hasCatererAccess = decoded.roles.includes('CATERER') || 
+                             decoded.roles.includes('ADMIN') || 
+                             decoded.roles.includes('SUPER_ADMIN');
+    
+    if (!hasCatererAccess) {
+      return res.status(403).json({ error: 'Caterer access required' });
+    }
+
+    // Get orders that need preparation or are being prepared
+    const orders = await prisma.order.findMany({
+      where: {
+        status: {
+          in: ['PENDING', 'CONFIRMED', 'PREPARING', 'READY']
+        }
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                prepTime: true
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        trackingHistory: {
+          orderBy: {
+            timestamp: 'desc'
+          },
+          take: 1
+        }
+      },
+      orderBy: {
+        createdAt: 'asc' // Oldest orders first
+      }
+    });
+
+    res.json({
+      success: true,
+      orders
+    });
+
+  } catch (error: any) {
+    console.error('Get caterer orders error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update order status for caterer (PENDING → PREPARING → READY)
+app.put('/api/caterer/orders/:id/status', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    // Check if user has CATERER role or ADMIN role
+    const hasCatererAccess = decoded.roles.includes('CATERER') || 
+                             decoded.roles.includes('ADMIN') || 
+                             decoded.roles.includes('SUPER_ADMIN');
+    
+    if (!hasCatererAccess) {
+      return res.status(403).json({ error: 'Caterer access required' });
+    }
+
+    const { id } = req.params;
+    const { status, preparationTime } = req.body;
+
+    // Caterer can only set: PREPARING, READY
+    const validStatuses = ['PREPARING', 'READY'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Caterer can only set status to: ${validStatuses.join(', ')}` });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Update order status
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: { status },
+      include: {
+        items: {
+          include: {
+            menuItem: true
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    // Create tracking entry
+    await prisma.orderTracking.create({
+      data: {
+        orderId: id,
+        status,
+        notes: status === 'PREPARING' 
+          ? `Kitchen started preparing order (estimated time: ${preparationTime || 'N/A'} minutes)`
+          : 'Order ready for pickup by delivery guy'
+      }
+    });
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        userId: decoded.userId,
+        action: 'ORDER_STATUS_UPDATED',
+        entity: 'Order',
+        details: `Caterer updated order ${order.orderNumber} status to ${status}`
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Order status updated successfully',
+      order: updatedOrder
+    });
+
+  } catch (error: any) {
+    console.error('Caterer update order status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delivery profile: get current profile (including avatar)
+app.get('/api/delivery/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Authentication required' });
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    if (!decoded.roles.includes('DELIVERY_GUY')) {
+      return res.status(403).json({ error: 'Delivery guy access required' });
+    }
+
+    let profile = await prisma.deliveryGuyProfile.findUnique({
+      where: { userId: decoded.userId }
+    });
+
+    if (!profile) {
+      profile = await prisma.deliveryGuyProfile.create({
+        data: { userId: decoded.userId, status: 'offline' }
+      });
+    }
+
+    res.json({ success: true, profile });
+  } catch (error: any) {
+    console.error('Get delivery profile error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delivery profile: update avatar url and basic status
+app.put('/api/delivery/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Authentication required' });
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    if (!decoded.roles.includes('DELIVERY_GUY')) {
+      return res.status(403).json({ error: 'Delivery guy access required' });
+    }
+
+    const { avatarUrl, status } = req.body;
+    
+    // Handle avatarUrl explicitly - preserve base64 images and nulls correctly
+    const updateData: any = {};
+    if (avatarUrl !== undefined && avatarUrl !== null && avatarUrl !== '') {
+      updateData.avatarUrl = avatarUrl; // Save base64 or URL
+    } else if (avatarUrl === null || avatarUrl === '') {
+      updateData.avatarUrl = null; // Explicitly set to null if empty
+    }
+    
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+    
+    const updated = await prisma.deliveryGuyProfile.upsert({
+      where: { userId: decoded.userId },
+      update: updateData,
+      create: { 
+        userId: decoded.userId, 
+        avatarUrl: (avatarUrl && avatarUrl !== '') ? avatarUrl : null, 
+        status: status || 'offline' 
+      } as any
+    });
+
+    res.json({ success: true, profile: updated });
+  } catch (error: any) {
+    console.error('Update delivery profile error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2059,7 +2352,7 @@ app.post('/api/admin/sync-menu', async (req, res) => {
             isSpicy: item.isSpicy || false,
             isVegetarian: item.isVegetarian || false,
             isAvailable: true,
-            image: 'https://via.placeholder.com/150',
+            image: getMenuItemImageUrl(item.name, item.category),
             nutrition: JSON.stringify({}),
             allergens: JSON.stringify([])
           }
@@ -2146,7 +2439,7 @@ app.post('/api/demo/order', async (req, res) => {
         orderNumber,
         userId: demoUser.id,
         status: 'PENDING',
-        total: 2500,
+        total: 1250 * 2,
         paymentMethod: 'CASH',
         deliveryAddress: 'Demo Address, Nairobi',
         deliveryNotes: 'Demo order for testing',

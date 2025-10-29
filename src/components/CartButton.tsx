@@ -79,7 +79,7 @@ const CartButton: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-orange-600">
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                        KES {(item.menuItem.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </p>
                     </div>
                   </div>
@@ -92,7 +92,7 @@ const CartButton: React.FC = () => {
                 <div className="flex justify-between items-center mb-3">
                   <span className="font-semibold text-gray-700">Total:</span>
                   <span className="font-bold text-xl text-orange-600">
-                    ${totalPrice.toFixed(2)}
+                    KES {totalPrice.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </span>
                 </div>
                 <motion.button

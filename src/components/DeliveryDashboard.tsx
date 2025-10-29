@@ -21,7 +21,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [notifications, setNotifications] = useState([]);
-  const [profileImage, setProfileImage] = useState('');
+  const [profileImage, setProfileImage] = useState<string>('');
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     phone: '',
@@ -41,7 +41,10 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     fetchAssignments();
     fetchEarnings();
     fetchPerformance();
-    fetchProfileData(); // Fetch saved profile data
+    // Only fetch profile data if user email is available
+    if (user?.email) {
+      fetchProfileData(); // Fetch saved profile data
+    }
     fetchOrders(); // Fetch delivery orders
     
     // Get current location
@@ -85,6 +88,9 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
       fetchAssignments();
       fetchEarnings();
       fetchPerformance();
+      if (user?.email) {
+        fetchProfileData(); // Refresh profile data periodically too
+      }
       fetchOrders();
     }, 5000); // Update every 5 seconds
 
@@ -333,12 +339,61 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
   };
 
   const fetchProfileData = async () => {
-    // Check localStorage first
-    const savedData = localStorage.getItem('deliveryProfile');
+    let backendHasImage = false;
+    
+    try {
+      // Fetch from backend first - this is the source of truth for profile picture
+      const res = await fetch('http://localhost:5000/api/delivery/profile', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.profile) {
+          // Set profile image from backend (can be base64 or URL)
+          // Backend stores base64 images, so they persist across sessions
+          // Check for both null and empty string
+          // avatarUrl can be base64 (data:image/...) or a URL
+          if (data.profile.avatarUrl && typeof data.profile.avatarUrl === 'string' && data.profile.avatarUrl.trim() !== '') {
+            const avatarValue = data.profile.avatarUrl.trim();
+            console.log('Loading profile image from backend (length:', avatarValue.length, 'chars)');
+            setProfileImage(avatarValue);
+            backendHasImage = true;
+          } else {
+            console.log('No avatarUrl in backend profile response (null, empty, or undefined)');
+            // Don't clear existing image if backend doesn't have one - it might still be loading
+          }
+          
+          // Set online status from backend
+          if (data.profile.status) {
+            setIsOnline(data.profile.status === 'online');
+          }
+        }
+      } else {
+        console.error('Backend profile fetch failed:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile from backend:', error);
+    }
+    
+    // Fallback to localStorage for other profile data
+    // Scope by user ID to prevent profile mixing between different delivery guys
+    const userStorageKey = `deliveryProfile_${user?.email || 'unknown'}`;
+    const savedData = localStorage.getItem(userStorageKey);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        setProfileImage(parsed.profileImage || '');
+        
+        // Only use profileImage from localStorage if:
+        // 1. Backend didn't return an image AND
+        // 2. localStorage has a non-base64 URL (base64 images should be in backend)
+        if (!backendHasImage && parsed.profileImage && !parsed.profileImage.startsWith('data:image/')) {
+          console.log('Loading profile image from localStorage fallback');
+          setProfileImage(parsed.profileImage);
+        }
+        
+        // Load other profile fields from localStorage (always load these)
         setProfileData(prev => ({ ...prev, ...parsed }));
       } catch (error) {
         console.error('Failed to parse saved profile:', error);
@@ -348,20 +403,24 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const handleSaveProfile = async () => {
     try {
-      // Save to backend (name and phone only)
+      // Save to backend - include base64 images so they persist
+      // The backend stores avatarUrl as a string, which can handle base64 data URLs
       const res = await fetch('http://localhost:5000/api/delivery/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name: profileData.name, phone: profileData.phone })
+        body: JSON.stringify({ 
+          avatarUrl: profileImage || null, // Send base64 or URL to backend for persistence
+          status: isOnline ? 'online' : 'offline'
+        })
       });
       const data = await res.json();
       if (data.success) {
-        // Save all fields to localStorage
-        const dataToSave = {
-          profileImage,
+        // Save to localStorage - but EXCLUDE base64 images (too large for localStorage)
+        // Profile picture is now stored in backend database, so we don't need it in localStorage
+        const dataToSave: any = {
           name: profileData.name,
           phone: profileData.phone,
           email: profileData.email,
@@ -374,19 +433,68 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
           address: profileData.address,
           bio: profileData.bio
         };
-        localStorage.setItem('deliveryProfile', JSON.stringify(dataToSave));
+        
+        // Only save non-base64 avatarUrl to localStorage (if it's a URL, not base64)
+        if (profileImage && !profileImage.startsWith('data:image/') && data.profile?.avatarUrl) {
+          dataToSave.profileImage = data.profile.avatarUrl;
+        }
+        
+        try {
+          // Scope by user ID to prevent profile mixing
+          const userStorageKey = `deliveryProfile_${user?.email || 'unknown'}`;
+          localStorage.setItem(userStorageKey, JSON.stringify(dataToSave));
+        } catch (storageError: any) {
+          if (storageError.name === 'QuotaExceededError') {
+            // If still too large, try without profileImage
+            delete dataToSave.profileImage;
+            const userStorageKey = `deliveryProfile_${user?.email || 'unknown'}`;
+            localStorage.setItem(userStorageKey, JSON.stringify(dataToSave));
+            toast.warning('⚠️ Profile saved, but image was too large for local storage');
+          } else {
+            throw storageError;
+          }
+        }
+        
+        // Update local state with backend response - ensure profile image persists
+        // Always use backend response if it has an avatarUrl (even if it's base64)
+        if (data.profile?.avatarUrl && data.profile.avatarUrl.trim() !== '') {
+          setProfileImage(data.profile.avatarUrl);
+        } else {
+          // If backend doesn't have image but we have one in state (just saved), keep it
+          // This prevents the image from disappearing immediately after save
+          if (!profileImage || profileImage === '') {
+            console.log('No profile image in backend and no local image');
+          }
+        }
+        
         toast.success('✅ Profile saved successfully!');
         setIsEditing(false);
       }
     } catch (error) {
       console.error('Failed to save profile:', error);
-      // Still save to localStorage even if backend fails
-      const dataToSave = {
-        profileImage,
-        ...profileData
-      };
-      localStorage.setItem('deliveryProfile', JSON.stringify(dataToSave));
-      toast.error('⚠️ Saved locally, but backend error occurred');
+      
+      // Fallback: Save to localStorage but exclude base64 images
+      try {
+        const dataToSave: any = { ...profileData };
+        // Don't save base64 images to localStorage
+        if (profileImage && !profileImage.startsWith('data:image/')) {
+          dataToSave.profileImage = profileImage;
+        }
+        // Scope by user ID to prevent profile mixing
+        const userStorageKey = `deliveryProfile_${user?.email || 'unknown'}`;
+        localStorage.setItem(userStorageKey, JSON.stringify(dataToSave));
+        toast.warning('⚠️ Saved locally only - backend unavailable');
+      } catch (storageError: any) {
+        if (storageError.name === 'QuotaExceededError') {
+          // Last resort: save without image
+          const dataToSave = { ...profileData };
+          const userStorageKey = `deliveryProfile_${user?.email || 'unknown'}`;
+          localStorage.setItem(userStorageKey, JSON.stringify(dataToSave));
+          toast.error('⚠️ Local storage full - saved without image');
+        } else {
+          toast.error('⚠️ Failed to save profile');
+        }
+      }
     }
   };
 

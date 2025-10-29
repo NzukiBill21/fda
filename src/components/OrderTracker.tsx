@@ -208,7 +208,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ orderId, onClose }) => {
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-orange-600">${order.total.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-orange-600">KES {order.total.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="text-sm text-gray-500">Cash on Delivery</div>
           </div>
         </div>
@@ -346,11 +346,11 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ orderId, onClose }) => {
               </div>
               <div className="flex-1">
                 <h4 className="font-medium text-gray-900">{item.menuItem.name}</h4>
-                <p className="text-sm text-gray-600">${item.menuItem.price.toFixed(2)} × {item.quantity}</p>
+                <p className="text-sm text-gray-600">KES {item.menuItem.price.toLocaleString('en-KE')} × {item.quantity}</p>
               </div>
               <div className="text-right">
                 <div className="font-bold text-gray-900">
-                  ${(item.menuItem.price * item.quantity).toFixed(2)}
+                  KES {(item.menuItem.price * item.quantity).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </div>
               </div>
             </div>

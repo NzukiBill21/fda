@@ -13,6 +13,7 @@ async function main() {
     { name: 'SUB_ADMIN', description: 'Limited admin rights - Maximum 3 users' },
     { name: 'USER', description: 'Standard customer user' },
     { name: 'DELIVERY_GUY', description: 'Handles food delivery' },
+    { name: 'CATERER', description: 'Kitchen staff - Manages order preparation' },
   ];
 
   for (const role of roles) {

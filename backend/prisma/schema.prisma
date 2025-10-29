@@ -64,6 +64,7 @@ model DeliveryGuyProfile {
   userId               String   @unique
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   status               String   @default("offline") // online, offline, delivering
+  avatarUrl            String?
   latitude             Float?
   longitude            Float?
   totalDeliveries      Int      @default(0)

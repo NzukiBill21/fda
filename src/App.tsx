@@ -15,6 +15,8 @@ import { RoleIndicator } from './components/RoleIndicator';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeliveryDashboard } from './components/DeliveryDashboard';
+import { CatererDashboard } from './components/CatererDashboard';
+import { CartSheet } from './components/CartSheet';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,6 +29,7 @@ interface CartItem {
   image?: string;
   category: string;
   quantity: number;
+  menuItemId?: string;
 }
 
 export default function App() {
@@ -42,7 +45,7 @@ export default function App() {
 
   // Authentication state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string; roles: string[] } | null>(null);
+  const [user, setUser] = useState<{ id?: string; name: string; email: string; roles: string[] } | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
 
   // Check for saved auth token on mount
@@ -75,6 +78,7 @@ export default function App() {
   const isSuperAdmin = Array.isArray(user?.roles) && (user.roles.includes('SUPER_ADMIN') || user.roles.includes('Super Admin'));
   const isAdmin = Array.isArray(user?.roles) && (user.roles.includes('ADMIN') || user.roles.includes('Admin'));
   const isDelivery = Array.isArray(user?.roles) && (user.roles.includes('DELIVERY_GUY') || user.roles.includes('DELIVERY') || user.roles.includes('Delivery'));
+  const isCaterer = Array.isArray(user?.roles) && (user.roles.includes('CATERER') || user.roles.includes('Caterer'));
 
   const handleAddToCart = (item: MenuItem) => {
     setCartItems(prev => {
@@ -112,12 +116,16 @@ export default function App() {
 
   const handleConfirmOrder = async (details: OrderDetails) => {
     try {
+      // Use user ID if logged in, otherwise use email (backend will find or create user)
+      const orderUserId = user?.id || user?.email || `guest_${details.phone}@monda.com`;
+      
       // Create order via API
       const orderData = {
-        userId: user?.email || 'guest',
+        userId: orderUserId,
         items: cartItems.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity
+          menuItemId: item.menuItemId || item.id,
+          quantity: item.quantity,
+          price: item.price // Include price from cart for calculation
         })),
         deliveryAddress: details.address,
         deliveryNotes: details.notes,
@@ -290,6 +298,29 @@ export default function App() {
     );
   }
 
+  if (isCaterer && authToken) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900">
+        <CatererDashboard token={authToken} user={user} />
+        <BackendStatus />
+        <AuthDialog
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+        <Toaster 
+          position="top-right" 
+          toastOptions={{
+            style: {
+              borderRadius: '1rem',
+              padding: '1rem',
+            },
+          }}
+        />
+      </div>
+    );
+  }
+
   if (isDelivery && authToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900">
@@ -411,88 +442,39 @@ export default function App() {
 
       <Footer />
 
-      {/* Cart Popup */}
-      {isCartOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-800">Your Cart</h2>
-                <button
-                  onClick={() => setIsCartOpen(false)}
-                  className="text-gray-500 hover:text-red-500 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 overflow-y-auto max-h-96">
-              {cartItems.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-6xl mb-4">🛒</div>
-                  <p className="text-gray-500 text-lg">Your cart is empty</p>
-                  <p className="text-gray-400 text-sm">Add some delicious items to get started!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                        <p className="text-gray-600 text-sm">Qty: {item.quantity}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="font-bold text-orange-600">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                            className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600"
-                          >
-                            -
-                          </button>
-                          <button
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                            className="w-8 h-8 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center text-white"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {cartItems.length > 0 && (
-              <div className="p-6 border-t bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-lg font-semibold text-gray-700">Total:</span>
-                  <span className="text-2xl font-bold text-orange-600">
-                    ${total.toFixed(2)}
-                  </span>
-                </div>
-                <button
-                  onClick={handleCheckout}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-orange-600"
-                  style={{ 
-                    backgroundColor: '#f97316',
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  Proceed to Checkout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Sophisticated Cart Sheet */}
+      <CartSheet
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop&q=85',
+          category: item.category,
+          quantity: item.quantity,
+          rating: 4.5,
+          reviews: 50,
+          popular: false,
+          spicy: false,
+          vegetarian: false,
+          menuItemId: item.menuItemId || item.id,
+        }))}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+        onCheckout={handleCheckout}
+        onAddToCart={handleAddToCart}
+        aiRecommendations={
+          cartItems.length > 0 ? (
+            <AIRecommendations
+              cartItems={cartItems}
+              onAddToCart={handleAddToCart}
+              allMenuItems={menuItems}
+            />
+          ) : undefined
+        }
+      />
 
       <CheckoutDialog
         isOpen={isCheckoutOpen}

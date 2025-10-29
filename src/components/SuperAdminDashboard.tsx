@@ -204,8 +204,13 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
     
     const actionName = actionNames[action as keyof typeof actionNames] || action;
     const loadingToast = toast.loading(`Processing ${actionName}...`, {
-      duration: 1000, // Reduced duration
+      duration: 3000, // Auto-dismiss after 3 seconds as fallback
     });
+    
+    // Set a timeout to dismiss loading toast if it takes too long
+    const timeoutId = setTimeout(() => {
+      toast.dismiss(loadingToast);
+    }, 5000);
     
     try {
       let endpoint = '';
@@ -233,14 +238,18 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
       let body: string | undefined = undefined;
       if (action === 'promote') {
         // Ask user which role to assign
-        const roleChoice = window.prompt('Choose role to assign:\n1. ADMIN\n2. DELIVERY_GUY\n3. USER\n\nEnter 1, 2, or 3:');
+        const roleChoice = window.prompt('Choose role to assign:\n1. ADMIN\n2. DELIVERY_GUY\n3. CATERER\n4. USER\n\nEnter 1, 2, 3, or 4:');
         let roleName = 'ADMIN';
         if (roleChoice === '2') {
           roleName = 'DELIVERY_GUY';
         } else if (roleChoice === '3') {
+          roleName = 'CATERER';
+        } else if (roleChoice === '4') {
           roleName = 'USER';
         }
         if (!roleChoice || roleChoice.trim() === '') {
+          clearTimeout(timeoutId);
+          toast.dismiss(loadingToast);
           toast.error('Operation cancelled');
           return;
         }
@@ -249,21 +258,29 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         body = JSON.stringify({ role: 'USER' }); // Default demotion to USER
       }
       
+      // Add timeout to fetch request
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+      
       const res = await fetch(`http://localhost:5000${endpoint}`, {
         method,
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body
+        body,
+        signal: controller.signal
       });
+      
+      clearTimeout(fetchTimeout);
       
       if (res.ok) {
         const data = await res.json();
+        clearTimeout(timeoutId);
         toast.dismiss(loadingToast); // Dismiss loading toast
         toast.success(`✅ ${actionName} successful!`, {
           description: data.message || 'User operation completed',
-          duration: 2000, // Reduced duration
+          duration: 2000,
         });
         fetchUsers();
         logActivity(`${actionName}`, `User ID: ${userId} - ${data.message || 'Operation completed'}`);
@@ -272,12 +289,14 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         throw new Error(errorData.error || 'Action failed');
       }
     } catch (error: any) {
+      clearTimeout(timeoutId);
       toast.dismiss(loadingToast); // Dismiss loading toast
+      const errorMsg = error.name === 'AbortError' ? 'Request timed out. Backend may be offline.' : (error.message || 'Please try again');
       toast.error(`❌ Failed to ${actionName.toLowerCase()}`, {
-        description: error.message || 'Please try again',
-        duration: 2000, // Reduced duration
+        description: errorMsg,
+        duration: 3000,
       });
-      logActivity(`${actionName} Failed`, `User ID: ${userId} - ${error.message}`);
+      logActivity(`${actionName} Failed`, `User ID: ${userId} - ${errorMsg}`);
     }
   };
 
