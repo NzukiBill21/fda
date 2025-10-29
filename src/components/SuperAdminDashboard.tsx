@@ -54,6 +54,18 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [showMenuEditor, setShowMenuEditor] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showOrdersModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showOrdersModal]);
   const [devTools, setDevTools] = useState({
     terminal: false,
     logs: false,
@@ -1351,13 +1363,28 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4"
             onClick={() => setShowOrdersModal(false)}
+            style={{ 
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              overflow: 'hidden'
+            }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gradient-to-br from-orange-900/95 via-red-900/95 to-yellow-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl border-4 border-yellow-500/50 w-full max-w-[95vw] sm:max-w-[90vw] h-[95vh] sm:h-[90vh] flex flex-col overflow-hidden"
+              className="bg-gradient-to-br from-orange-900/95 via-red-900/95 to-yellow-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl border-4 border-yellow-500/50 w-full max-w-[95vw] sm:max-w-[90vw] h-[95vh] sm:h-[90vh] flex flex-col"
+              style={{ 
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                maxHeight: '95vh',
+                overflow: 'hidden'
+              }}
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 sm:p-6 border-b-4 border-yellow-500/50 bg-gradient-to-r from-red-600 to-orange-600">
@@ -1383,8 +1410,21 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                 </motion.button>
               </div>
 
-              {/* Orders Dashboard Content */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {/* Orders Dashboard Content - Properly scrollable */}
+              <div 
+                className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6"
+                style={{ 
+                  WebkitOverflowScrolling: 'touch',
+                  maxHeight: 'calc(95vh - 140px)',
+                  minHeight: 0,
+                  position: 'relative',
+                  overscrollBehavior: 'contain'
+                }}
+                onWheel={(e) => {
+                  // Prevent body scroll when scrolling modal content
+                  e.stopPropagation();
+                }}
+              >
                 <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl border-4 border-white/50">
                   <OrdersDashboard />
                 </div>

@@ -262,10 +262,24 @@ export const menuItems: MenuItem[] = [
   },
 ];
 
+// Helper to sanitize image URLs
+const sanitizeImageUrl = (url: string | undefined, name: string, category: string): string => {
+  if (!url) return getUnsplashImageForMenuItem(name, category);
+  if (url.includes('placeholder') || url.includes('via.placeholder') || url.match(/placeholder\.(com|net|io)/i)) {
+    return getUnsplashImageForMenuItem(name, category);
+  }
+  return url;
+};
+
 export function MenuSection({ onAddToCart }: MenuSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [currentMenuItems, setCurrentMenuItems] = useState<MenuItem[]>(menuItems);
+  // Sanitize initial menuItems to remove any placeholder images
+  const sanitizedInitialItems = menuItems.map(item => ({
+    ...item,
+    image: sanitizeImageUrl(item.image, item.name, item.category)
+  }));
+  const [currentMenuItems, setCurrentMenuItems] = useState<MenuItem[]>(sanitizedInitialItems);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch menu items from backend
@@ -280,9 +294,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
             name: item.name,
             description: item.description || '',
             price: item.price,
-            image: item.image && !item.image.includes('placeholder') && !item.image.includes('via.placeholder') 
-              ? item.image 
-              : getUnsplashImageForMenuItem(item.name, item.category),
+            image: sanitizeImageUrl(item.image, item.name, item.category),
             category: item.category,
             rating: item.rating || 4.5,
             reviews: 0,
@@ -290,11 +302,16 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
             spicy: false,
             vegetarian: item.isVegetarian || false
           }));
-          // Merge with existing items to avoid duplicates
+          // Merge with existing items to avoid duplicates, and sanitize all images
           setCurrentMenuItems(prevItems => {
             const existingIds = new Set(prevItems.map(i => i.id));
             const newItems = mappedItems.filter((item: any) => !existingIds.has(item.id));
-            return [...prevItems, ...newItems];
+            // Sanitize all items (existing and new) to ensure no placeholder images
+            const allItems = [...prevItems, ...newItems].map(item => ({
+              ...item,
+              image: sanitizeImageUrl(item.image, item.name, item.category)
+            }));
+            return allItems;
           });
         }
       } catch (error) {
@@ -503,6 +520,14 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                         alt={item.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         loading="lazy"
+                        onError={(e) => {
+                          // Replace broken placeholder images with fallback
+                          const target = e.target as HTMLImageElement;
+                          const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
+                          if (target.src !== fallbackImage) {
+                            target.src = fallbackImage;
+                          }
+                        }}
                       />
                       
                       {/* Gradient Overlay */}

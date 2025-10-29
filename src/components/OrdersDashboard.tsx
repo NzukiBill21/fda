@@ -253,19 +253,35 @@ const OrdersDashboard: React.FC = () => {
 
   const createDemoOrder = async () => {
     try {
+      // Randomize demo order items to create variety in pricing
+      const menuItems = ['ribs-1', 'soft-drinks-1', 'burger-1', 'pizza-1', 'chicken-1'];
+      const randomItems = [];
+      const itemCount = Math.floor(Math.random() * 3) + 1; // 1-3 items
+      
+      for (let i = 0; i < itemCount; i++) {
+        const randomItemId = menuItems[Math.floor(Math.random() * menuItems.length)];
+        const quantity = Math.floor(Math.random() * 3) + 1; // 1-3 quantity
+        // Avoid duplicates
+        if (!randomItems.find(item => item.menuItemId === randomItemId)) {
+          randomItems.push({ menuItemId: randomItemId, quantity });
+        }
+      }
+      
+      // Fallback if no items selected
+      if (randomItems.length === 0) {
+        randomItems.push({ menuItemId: 'ribs-1', quantity: 1 });
+      }
+
       const response = await fetch('http://localhost:5000/api/demo/order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          customerName: 'Demo Customer',
-          customerPhone: '+254700000000',
+          customerName: `Demo Customer ${Math.floor(Math.random() * 1000)}`,
+          customerPhone: `+2547${Math.floor(Math.random() * 100000000)}`,
           deliveryAddress: 'Nairobi, Kenya',
-          items: [
-            { menuItemId: 'ribs-1', quantity: 1 },
-            { menuItemId: 'soft-drinks-1', quantity: 2 }
-          ]
+          items: randomItems
         })
       });
 
@@ -564,8 +580,11 @@ const OrdersDashboard: React.FC = () => {
     }
   };
 
+  // Filter orders on the client side as well (in case backend doesn't filter properly)
+  // But prioritize using filtered orders from backend
   const filteredOrders = orders.filter(order => {
-    const matchesStatus = !filterStatus || order.status === filterStatus;
+    // If filterStatus is set, only show orders matching that status
+    const matchesStatus = !filterStatus || order.status.toUpperCase() === filterStatus.toUpperCase();
     const matchesSearch = !searchTerm || 
       order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -582,7 +601,7 @@ const OrdersDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ minHeight: 'auto' }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -732,7 +751,7 @@ const OrdersDashboard: React.FC = () => {
 
       {/* Orders Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ maxHeight: 'none' }}>
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>

@@ -118,6 +118,11 @@ model Order {
   deliveryLongitude Float?
   estimatedDeliveryTime Int? // minutes
   actualDeliveryTime DateTime?
+  confirmedAt      DateTime?
+  preparingAt      DateTime?
+  readyAt          DateTime?
+  pickedUpAt       DateTime?
+  deliveredAt      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   items           OrderItem[]

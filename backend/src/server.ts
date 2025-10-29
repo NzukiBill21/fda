@@ -386,7 +386,8 @@ app.post('/api/delivery/accept/:orderId', async (req, res) => {
       where: { id: orderId },
       data: {
         deliveryGuyId: decoded.userId,
-        status: 'OUT_FOR_DELIVERY'
+        status: 'OUT_FOR_DELIVERY',
+        pickedUpAt: new Date()
       }
     });
 
@@ -415,7 +416,8 @@ app.post('/api/delivery/complete/:orderId', async (req, res) => {
     const order = await prisma.order.update({
       where: { id: orderId, deliveryGuyId: decoded.userId },
       data: {
-        status: 'DELIVERED'
+        status: 'DELIVERED',
+        deliveredAt: new Date()
       }
     });
 
@@ -1325,6 +1327,14 @@ app.post('/api/orders', async (req, res) => {
       });
     }
 
+    // Validate that we have at least one valid order item
+    if (orderItems.length === 0) {
+      return res.status(400).json({ 
+        error: 'No valid items found in order. Please ensure all items have valid menuItemId and price.',
+        receivedItems: items
+      });
+    }
+
     // Add delivery fee and tax
     const deliveryFee = total > 5000 ? 0 : 200; // Free delivery over KES 5,000
     const tax = total * 0.16; // 16% VAT
@@ -1378,7 +1388,7 @@ app.post('/api/orders', async (req, res) => {
     // Log activity
     await prisma.activityLog.create({
       data: {
-        userId,
+        userId: user.id, // Use the resolved user's ID
         action: 'ORDER_CREATED',
         entity: 'Order',
         details: `Order ${orderNumber} created with ${items.length} items, total: KES ${finalTotal}`
@@ -1808,10 +1818,17 @@ app.put('/api/caterer/orders/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Update order status
+    // Update order status with timestamps
+    const updateData: any = { status };
+    if (status === 'PREPARING') {
+      updateData.preparingAt = new Date();
+    } else if (status === 'READY') {
+      updateData.readyAt = new Date();
+    }
+    
     const updatedOrder = await prisma.order.update({
       where: { id },
-      data: { status },
+      data: updateData,
       include: {
         items: {
           include: {
@@ -2142,13 +2159,18 @@ app.post('/api/demo/order', async (req, res) => {
       total = fallback.price;
     }
 
+    // Add delivery fee and tax (same logic as regular orders)
+    const deliveryFee = total > 5000 ? 0 : 200; // Free delivery over KES 5,000
+    const tax = total * 0.16; // 16% VAT
+    const finalTotal = total + deliveryFee + tax;
+
     // Create order with items
     const order = await prisma.order.create({
       data: {
         orderNumber,
         userId: demoUser.id,
         status: 'PENDING',
-        total,
+        total: finalTotal,
         paymentMethod: 'CASH',
         deliveryAddress,
         deliveryNotes: 'Demo order for testing',
@@ -2481,6 +2503,89 @@ app.post('/api/demo/order', async (req, res) => {
   }
 });
 
+// Submit support request (for customers who haven't received delivery)
+app.post('/api/orders/support-request', async (req, res) => {
+  try {
+    const { orderId, kitchenStaffNumber, timestamp } = req.body;
+
+    if (!orderId || !kitchenStaffNumber) {
+      return res.status(400).json({ error: 'Order ID and kitchen/staff number are required' });
+    }
+
+    // Find the order
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: true,
+        deliveryGuy: true
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Log the support request as an activity
+    await prisma.activityLog.create({
+      data: {
+        userId: order.userId,
+        action: 'SUPPORT_REQUEST',
+        entity: 'Order',
+        details: `Support request for order ${order.orderNumber} - Kitchen/Staff Number: ${kitchenStaffNumber}. Order status: ${order.status}`
+      }
+    });
+
+    // Create a tracking entry for the support request
+    await prisma.orderTracking.create({
+      data: {
+        orderId: order.id,
+        status: order.status,
+        notes: `Support requested by customer - Kitchen/Staff Number: ${kitchenStaffNumber}. Customer indicates delivery not yet received.`
+      }
+    });
+
+    // Log activity for admins
+    const adminUsers = await prisma.user.findMany({
+      where: {
+        roles: {
+          some: {
+            role: {
+              name: {
+                in: ['SUPER_ADMIN', 'ADMIN']
+              }
+            }
+          }
+        }
+      }
+    });
+
+    for (const admin of adminUsers) {
+      await prisma.activityLog.create({
+        data: {
+          userId: admin.id,
+          action: 'SUPPORT_REQUEST_ALERT',
+          entity: 'Order',
+          details: `Customer support request for Order ${order.orderNumber} - Staff #${kitchenStaffNumber}. Action required.`
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Support request submitted successfully. Our team will contact you shortly.',
+      orderNumber: order.orderNumber,
+      supportContact: {
+        kitchen: '+254 700 000 000',
+        staff: '+254 700 000 001',
+        email: 'support@monda.com'
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Support request error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {
