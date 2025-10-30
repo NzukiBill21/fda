@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Star, Heart, Flame, Leaf } from 'lucide-react';
 import { Badge } from './ui/badge';
@@ -274,6 +274,13 @@ const sanitizeImageUrl = (url: string | undefined, name: string, category: strin
 export function MenuSection({ onAddToCart }: MenuSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [showOffers, setShowOffers] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [priceFilter, setPriceFilter] = useState<'any' | 'budget' | 'mid' | 'premium'>('any');
+  const [onlyPopular, setOnlyPopular] = useState(false);
+  const [onlySpicy, setOnlySpicy] = useState(false);
+  const [onlyVeggie, setOnlyVeggie] = useState(false);
+  const [sortBy, setSortBy] = useState<'match' | 'priceAsc' | 'priceDesc' | 'ratingDesc'>('match');
   // Sanitize initial menuItems to remove any placeholder images
   const sanitizedInitialItems = menuItems.map(item => ({
     ...item,
@@ -334,7 +341,68 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
     };
   }, []);
 
+  // Global hardening: replace any placeholder images anywhere in the page
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const img = e.target as HTMLImageElement;
+      const src = img?.src || '';
+      if (!img || !src) return;
+      if (/via\.placeholder|placeholder\.(com|net|io)/i.test(src)) {
+        const name = img.alt || 'delicious';
+        // best effort: try using data-category attribute if present
+        const category = (img.getAttribute('data-category') || 'Premium');
+        img.src = getUnsplashImageForMenuItem(name, category);
+      }
+    };
+    document.addEventListener('error', handler, true);
+    return () => document.removeEventListener('error', handler, true);
+  }, []);
+
   const categories = ['All', 'African Specials', 'Premium', ...Array.from(new Set(currentMenuItems.filter(i => i.category !== 'Premium' && i.category !== 'African Specials').map((item) => item.category)))];
+
+  // Lightweight fuzzy search scoring for suggestions
+  const suggestions = useMemo(() => {
+    if (searchTerm.trim().length < 2) return [] as MenuItem[];
+    const needle = searchTerm.toLowerCase();
+    const score = (text: string) => {
+      const hay = text.toLowerCase();
+      if (hay.includes(needle)) return 200 - hay.indexOf(needle) * 2; // prefer early matches
+      // partial ratio
+      let matches = 0;
+      let j = 0;
+      for (let i = 0; i < hay.length && j < needle.length; i++) {
+        if (hay[i] === needle[j]) { matches++; j++; }
+      }
+      return matches * 4; // weaker than includes
+    };
+    const base = selectedCategory === 'All' ? currentMenuItems : currentMenuItems.filter(i => i.category === selectedCategory);
+    const applyBadgeFilters = (items: MenuItem[]) => {
+      let list = items;
+      if (onlyPopular) list = list.filter(i => i.popular);
+      if (onlySpicy) list = list.filter(i => i.spicy);
+      if (onlyVeggie) list = list.filter(i => i.vegetarian);
+      // price filter
+      if (priceFilter !== 'any') {
+        list = list.filter((item) => {
+          if (priceFilter === 'budget') return item.price < 500;
+          if (priceFilter === 'mid') return item.price >= 500 && item.price <= 1000;
+          return item.price > 1000;
+        });
+      }
+      return list;
+    };
+
+    return applyBadgeFilters([...base])
+      .map(item => ({ item, s: Math.max(
+        score(item.name),
+        score(item.description),
+        score(item.category)
+      )}))
+      .filter(x => x.s >= Math.max(20, needle.length * 6))
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 8)
+      .map(x => x.item);
+  }, [searchTerm, currentMenuItems]);
 
   const filteredItems = (() => {
     let filtered = currentMenuItems;
@@ -353,6 +421,22 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
         item.category.toLowerCase().includes(lowerSearchTerm)
       );
     }
+    // Price filter
+    if (priceFilter !== 'any') {
+      filtered = filtered.filter((item) => {
+        if (priceFilter === 'budget') return item.price < 500;
+        if (priceFilter === 'mid') return item.price >= 500 && item.price <= 1000;
+        return item.price > 1000; // premium
+      });
+    }
+    // Badge filters
+    if (onlyPopular) filtered = filtered.filter(i => i.popular);
+    if (onlySpicy) filtered = filtered.filter(i => i.spicy);
+    if (onlyVeggie) filtered = filtered.filter(i => i.vegetarian);
+    // Sorting
+    if (sortBy === 'priceAsc') filtered = [...filtered].sort((a, b) => a.price - b.price);
+    if (sortBy === 'priceDesc') filtered = [...filtered].sort((a, b) => b.price - a.price);
+    if (sortBy === 'ratingDesc') filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     
     return filtered;
   })();
@@ -408,7 +492,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
   };
 
   return (
-    <section id="menu" className="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-red-950/50 via-transparent to-yellow-900/50 relative overflow-hidden">
+    <section id="menu" className="py-8 sm:py-12 lg:py-16 bg-gradient-to-br from-red-950/50 via-transparent to-yellow-900/50 relative overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-20 left-10 w-96 h-96 bg-red-600 rounded-full blur-3xl animate-pulse" />
@@ -417,68 +501,146 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12 lg:mb-16"
-        >
+        {/* Collapsible offers/hero. When hidden, spacing collapses to minimize scroll. */}
+        {/* Single compact offers block to avoid duplicates elsewhere */}
+        {showOffers ? (
           <motion.div
-            initial={{ scale: 0 }}
-            whileInView={{ scale: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 shadow-2xl backdrop-blur-xl mb-6"
-            style={{
-              background: 'rgba(255, 255, 255, 0.98)',
-              borderColor: 'rgba(230, 57, 70, 0.4)',
-              boxShadow: '0 8px 32px rgba(230, 57, 70, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.9)'
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8 lg:mb-10"
           >
-            <Flame className="w-5 h-5 text-red-600" />
-            <span className="text-sm font-bold" style={{ 
-              color: '#e63946',
-              textShadow: '0 1px 2px rgba(230, 57, 70, 0.2)'
-            }}>DELICIOUS MENU</span>
+            <div className="flex items-center justify-center mb-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 shadow-2xl backdrop-blur-xl"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.98)',
+                  borderColor: 'rgba(230, 57, 70, 0.4)',
+                  boxShadow: '0 8px 32px rgba(230, 57, 70, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.9)'
+                }}
+              >
+                <Flame className="w-5 h-5 text-red-600" />
+                <span className="text-sm font-bold" style={{ color: '#e63946' }}>DELICIOUS MENU</span>
+              </motion.div>
+              <button aria-label="Hide offers" onClick={() => setShowOffers(false)} className="ml-3 px-3 py-2 text-xs font-semibold rounded-full bg-white/70 hover:bg-white shadow border border-white/60">✕</button>
+            </div>
+            <h2 
+              className="text-3xl sm:text-5xl md:text-6xl mb-3 font-black tracking-tight"
+              style={{
+                color: '#ffffff',
+                textShadow: '0 4px 8px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3), 2px 2px 4px rgba(220, 38, 38, 0.5)',
+                WebkitTextStroke: '0.5px rgba(0, 0, 0, 0.2)',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              Our Signature Dishes
+            </h2>
+            <p 
+              className="text-base sm:text-xl md:text-2xl max-w-2xl mx-auto font-semibold"
+              style={{ color: '#ffffff' }}
+            >
+              From authentic African cuisine to international favorites
+            </p>
           </motion.div>
-          
-          <h2 
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-6 font-black tracking-tight"
-            style={{
-              color: '#ffffff',
-              textShadow: '0 4px 8px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3), 2px 2px 4px rgba(220, 38, 38, 0.5)',
-              WebkitTextStroke: '0.5px rgba(0, 0, 0, 0.2)',
-              letterSpacing: '-0.02em'
-            }}
-          >
-            Our Signature Dishes
-          </h2>
-          <p 
-            className="text-lg sm:text-xl md:text-2xl max-w-2xl mx-auto font-semibold"
-            style={{
-              color: '#ffffff',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)'
-            }}
-          >
-            From authentic African cuisine to international favorites
-          </p>
-        </motion.div>
+        ) : (
+          <div className="flex items-center justify-center mb-3">
+            <button onClick={() => setShowOffers(true)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold bg-white shadow border border-gray-200 hover:bg-gray-50">
+              <span>Show Offers</span>
+              <span>▾</span>
+            </button>
+          </div>
+        )}
 
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-          {/* Search Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-8"
-          >
-            <input
-              type="text"
-              placeholder="🔍 Search for food, drinks, or categories..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-2xl mx-auto px-6 py-4 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border-2 border-white/60 focus:border-red-500 focus:outline-none text-lg font-semibold text-gray-900 placeholder-gray-400"
-            />
-          </motion.div>
+          {/* Compact, glassy search with suggestions */}
+          <div className="mb-4">
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative max-w-2xl mx-auto"
+            >
+              <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white shadow-xl border border-gray-200 focus-within:border-red-500">
+                <span className="text-red-600">🔎</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setShowSuggestions(true); }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
+                  placeholder="Search meals, drinks, categories..."
+                  className="w-full bg-transparent outline-none text-base sm:text-lg font-semibold text-gray-800 placeholder-gray-400"
+                />
+                {searchTerm && (
+                  <button
+                    aria-label="Clear search"
+                    onClick={() => setSearchTerm('')}
+                    className="px-2 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {showSuggestions && suggestions.length > 0 && (
+                <motion.ul
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute left-0 right-0 mt-2 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border border-white/60 overflow-hidden z-20"
+                >
+                  {suggestions.map(s => (
+                    <li key={s.id}>
+                      <button
+                        onMouseDown={() => { setSearchTerm(s.name); setSelectedCategory('All'); }}
+                        className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-3"
+                      >
+                        <img src={s.image} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">{s.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{s.category}</p>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Compact filters row */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-5">
+            <div className="flex items-center gap-1 bg-white/80 backdrop-blur-xl border border-white/60 rounded-full px-2 py-1 shadow">
+              {[
+                { v: 'any', label: 'Any' },
+                { v: 'budget', label: '< 500' },
+                { v: 'mid', label: '500-1000' },
+                { v: 'premium', label: '> 1000' },
+              ].map(opt => (
+                <button
+                  key={opt.v}
+                  onClick={() => { setPriceFilter(opt.v as any); setSelectedCategory('All'); }}
+                  className={`px-2.5 py-1 text-xs sm:text-sm rounded-full font-semibold ${priceFilter===opt.v ? 'bg-gradient-to-r from-red-600 to-yellow-500 text-white shadow' : 'text-gray-700 hover:bg-white'}`}
+                >{opt.label}</button>
+              ))}
+            </div>
+
+            <button onClick={() => { setOnlyPopular(p => !p); setSelectedCategory('All'); }} className={`px-3 py-1.5 text-xs sm:text-sm rounded-full border ${onlyPopular ? 'bg-yellow-400 text-red-900 border-yellow-300' : 'bg-white/80 text-gray-800 border-white/60'} shadow`}>Popular</button>
+            <button onClick={() => { setOnlySpicy(p => !p); setSelectedCategory('All'); }} className={`px-3 py-1.5 text-xs sm:text-sm rounded-full border ${onlySpicy ? 'bg-red-600 text-white border-red-500' : 'bg-white/80 text-gray-800 border-white/60'} shadow`}>Spicy</button>
+            <button onClick={() => { setOnlyVeggie(p => !p); setSelectedCategory('All'); }} className={`px-3 py-1.5 text-xs sm:text-sm rounded-full border ${onlyVeggie ? 'bg-green-600 text-white border-green-500' : 'bg-white/80 text-gray-800 border-white/60'} shadow`}>Veggie</button>
+
+            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-xl border border-white/60 rounded-full px-2 py-1 shadow">
+              <span className="text-xs text-gray-600 pl-1">Sort</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent text-sm font-semibold px-2 py-1 rounded-full outline-none"
+              >
+                <option value="match">Best Match</option>
+                <option value="priceAsc">Price Low</option>
+                <option value="priceDesc">Price High</option>
+                <option value="ratingDesc">Top Rated</option>
+              </select>
+            </div>
+          </div>
 
           <div className="flex justify-center mb-10 lg:mb-14 w-full">
             <div className="overflow-x-scroll overflow-y-hidden w-full md:w-auto scrollbar-visible px-4">
@@ -582,15 +744,15 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                       <div className="flex items-center justify-between mt-auto gap-2">
                         <div className="flex flex-col">
                           <span className="text-xs text-gray-500 uppercase tracking-wide hidden lg:inline">Price</span>
-                          <span 
-                            className="text-lg sm:text-2xl lg:text-3xl bg-gradient-to-r from-red-600 to-yellow-600 bg-clip-text text-transparent font-extrabold"
-                            style={{ 
-                              fontFamily: 'system-ui, -apple-system, sans-serif',
-                              letterSpacing: '-0.02em'
-                            }}
-                          >
-                            KES {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          </span>
+                          <div className="flex items-end gap-1">
+                            <span className="text-sm sm:text-base font-semibold text-gray-600 leading-none">KES</span>
+                            <span
+                              className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-none"
+                              style={{ letterSpacing: '-0.02em' }}
+                            >
+                              {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
                         </div>
                         
                         <motion.button

@@ -18,12 +18,11 @@ export function ReviewDialog({ isOpen, onClose, orderId, onSubmitReview }: Revie
   const [comment, setComment] = useState('');
 
   const handleSubmit = () => {
-    if (rating > 0) {
-      onSubmitReview(rating, comment);
-      onClose();
-      setRating(0);
-      setComment('');
-    }
+    if (rating <= 0) return; // require at least 1 star
+    onSubmitReview(rating, comment);
+    onClose();
+    setRating(0);
+    setComment('');
   };
 
   return (
@@ -82,6 +81,9 @@ export function ReviewDialog({ isOpen, onClose, orderId, onSubmitReview }: Revie
                 {rating === 1 && '😔 Poor'}
               </motion.p>
             )}
+            {rating === 0 && (
+              <p className="text-sm text-gray-500 mb-6">Tap a star to rate before submitting.</p>
+            )}
           </div>
 
           {/* Comment */}
@@ -106,7 +108,6 @@ export function ReviewDialog({ isOpen, onClose, orderId, onSubmitReview }: Revie
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={rating === 0}
               className="flex-1 rounded-2xl py-6 bg-gradient-to-r from-red-600 via-red-600 to-yellow-500 hover:from-red-700 hover:to-yellow-600 shadow-xl text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Submit Review

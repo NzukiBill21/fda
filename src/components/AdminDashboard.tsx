@@ -12,9 +12,10 @@ import OrdersDashboard from './OrdersDashboard';
 interface AdminDashboardProps {
   token: string;
   setIsAuthOpen?: (open: boolean) => void;
+  onLogout?: () => void;
 }
 
-export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
+export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboardProps) {
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalUsers: 0,
@@ -296,25 +297,32 @@ export function AdminDashboard({ token, setIsAuthOpen }: AdminDashboardProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-950 via-orange-900 to-yellow-900 pt-24 pb-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-red-950 via-orange-900 to-yellow-900 pt-6 pb-10 px-4 relative">
+      {/* Mondas watermark */}
+      <div className="pointer-events-none select-none absolute inset-0 opacity-10" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '600px', backgroundRepeat: 'no-repeat', backgroundPosition: 'right -100px top -80px', filter: 'blur(1px)'}} />
       <div className="container mx-auto max-w-7xl">
+        {/* Local top bar */}
+        <div className="flex items-center justify-between mb-3">
+          <img src="/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png" alt="Mondas" className="h-10 w-auto" />
+          <button onClick={onLogout} className="px-4 py-2 rounded-lg bg-white/15 text-white border border-white/30 hover:bg-white/25">Logout</button>
+        </div>
         {/* Header with Actions */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 mb-4">
             <div className="text-center md:text-left">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-orange-600 to-red-600 shadow-2xl mb-4">
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-orange-600 to-red-600 shadow-2xl mb-3">
                 <BarChart3 className="w-8 h-8 text-white" />
                 <span className="text-white font-bold text-2xl">ADMIN ANALYTICS</span>
                 <Flame className="w-6 h-6 text-yellow-200 animate-pulse" />
               </div>
-              <h1 className="text-5xl font-extrabold text-white mb-2 drop-shadow-2xl">
+              <h1 className="text-3xl font-extrabold text-white mb-1 drop-shadow-2xl tracking-tight">
                 Business Intelligence
               </h1>
-              <p className="text-yellow-200 text-lg font-semibold">PowerBI-Level Analytics & Insights</p>
+              <p className="text-yellow-200 text-base font-semibold">PowerBI-Level Analytics & Insights</p>
             </div>
 
             {/* Quick Actions */}

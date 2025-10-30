@@ -9,9 +9,10 @@ interface HeaderProps {
   user?: { name: string; email: string; roles: string[] } | null;
   onLoginClick: () => void;
   onLogout: () => void;
+  showCart?: boolean;
 }
 
-export function Header({ cartCount, onCartClick, user, onLoginClick, onLogout }: HeaderProps) {
+export function Header({ cartCount, onCartClick, user, onLoginClick, onLogout, showCart = true }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-950/90 via-red-900/90 to-yellow-900/90 backdrop-blur-2xl border-b-2 border-yellow-600/30 shadow-2xl">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
@@ -106,7 +107,8 @@ export function Header({ cartCount, onCartClick, user, onLoginClick, onLogout }:
               </motion.button>
             )}
 
-            {/* Cart Button */}
+            {/* Cart Button (hidden on admin/superadmin dashboards) */}
+            {showCart && (
             <motion.button
               whileHover={{ 
                 scale: 1.05, 
@@ -131,6 +133,7 @@ export function Header({ cartCount, onCartClick, user, onLoginClick, onLogout }:
                 )}
               </div>
             </motion.button>
+            )}
           </div>
         </div>
       </div>

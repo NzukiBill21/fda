@@ -88,7 +88,9 @@ interface OrderStats {
   thisWeekOrders: number;
 }
 
-const OrdersDashboard: React.FC = () => {
+interface OrdersDashboardProps { token?: string; variant?: 'default' | 'modal' }
+
+const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'default' }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,14 +112,16 @@ const OrdersDashboard: React.FC = () => {
     { value: 'CANCELLED', label: 'Cancelled' }
   ];
 
+  const resolveToken = () => token || localStorage.getItem('authToken');
+
   const fetchDeliveryGuys = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+      const tk = resolveToken();
+      if (!tk) return;
       
       const response = await fetch('http://localhost:5000/api/admin/users', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${tk}`
         }
       });
 
@@ -136,8 +140,8 @@ const OrdersDashboard: React.FC = () => {
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
+      const tk = resolveToken();
+      if (!tk) {
         console.log('No auth token found, skipping orders fetch');
         return;
       }
@@ -153,7 +157,7 @@ const OrdersDashboard: React.FC = () => {
 
       const response = await fetch(`http://localhost:5000/api/admin/orders?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${tk}`
         }
       });
 
@@ -177,15 +181,15 @@ const OrdersDashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
+      const tk = resolveToken();
+      if (!tk) {
         console.log('No auth token found, skipping stats fetch');
         return;
       }
       
       const response = await fetch('http://localhost:5000/api/admin/orders/stats', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${tk}`
         }
       });
 
@@ -409,34 +413,42 @@ const OrdersDashboard: React.FC = () => {
         <head>
           <title>Mondas Orders Report</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #dc2626; }
-            h2 { color: #ea580c; margin-top: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f97316; color: white; }
-            .stats { display: flex; gap: 20px; margin: 20px 0; }
-            .stat-box { border: 2px solid #dc2626; padding: 15px; border-radius: 8px; }
+            body { font-family: Arial, sans-serif; padding: 0; margin: 0; }
+            .header { height: 90px; background: linear-gradient(90deg, #7f1d1d, #991b1b, #ea580c); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+            .header .title { font-weight: 800; font-size: 26px; }
+            .container { padding: 24px; }
+            h2 { color: #111827; margin-top: 24px; font-size: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 12px; }
+            th { background-color: #fef3c7; color: #111827; }
+            .stats { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+            .stat-box { border: 1px solid #f59e0b; background: #fff7ed; padding: 12px 14px; border-radius: 8px; font-size: 12px; }
+            .kpi-label { color: #6b7280; font-weight: 600; }
+            .kpi-value { color: #111827; font-weight: 800; font-size: 16px; }
+            .brand { opacity: .25; position: absolute; right: 16px; top: 8px; }
           </style>
         </head>
         <body>
-          <h1>Mondas Snack Bar - Orders Report</h1>
-          <p>Generated: ${new Date().toLocaleString()}</p>
+          <div class="header">
+            <div class="title">MONDAS Orders Report</div>
+            <div>${new Date().toLocaleString()}</div>
+          </div>
+          <div class="container">
           
           ${stats ? `
           <h2>Summary Statistics</h2>
           <div class="stats">
             <div class="stat-box">
-              <strong>Total Orders:</strong> ${stats.totalOrders}
+              <span class="kpi-label">Total Orders:</span> <span class="kpi-value">${stats.totalOrders}</span>
             </div>
             <div class="stat-box">
-              <strong>Pending:</strong> ${stats.pendingOrders}
+              <span class="kpi-label">Pending:</span> <span class="kpi-value">${stats.pendingOrders}</span>
             </div>
             <div class="stat-box">
-              <strong>Delivered:</strong> ${stats.deliveredOrders}
+              <span class="kpi-label">Delivered:</span> <span class="kpi-value">${stats.deliveredOrders}</span>
             </div>
             <div class="stat-box">
-              <strong>Total Revenue:</strong> KES ${stats.totalRevenue.toLocaleString('en-KE')}
+              <span class="kpi-label">Total Revenue:</span> <span class="kpi-value">KES ${stats.totalRevenue.toLocaleString('en-KE')}</span>
             </div>
           </div>
           ` : ''}
@@ -468,6 +480,7 @@ const OrdersDashboard: React.FC = () => {
               `).join('')}
             </tbody>
           </table>
+          </div>
         </body>
       </html>
     `;
@@ -486,10 +499,26 @@ const OrdersDashboard: React.FC = () => {
 
   const exportToPNG = async () => {
     try {
-      // Create a canvas with the stats visualization
+      // Ensure Plotly is available
+      const ensurePlotly = async (): Promise<any> => {
+        const w = window as any;
+        if (w.Plotly) return w.Plotly;
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.plot.ly/plotly-2.26.0.min.js';
+          s.onload = () => resolve();
+          s.onerror = () => resolve();
+          document.head.appendChild(s);
+        });
+        return (window as any).Plotly;
+      };
+
+      const Plotly = await ensurePlotly();
+
+      // Create a canvas with branded report and charts
       const canvas = document.createElement('canvas');
-      canvas.width = 1200;
-      canvas.height = 800;
+      canvas.width = 1400;
+      canvas.height = 900;
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
@@ -497,45 +526,160 @@ const OrdersDashboard: React.FC = () => {
         return;
       }
 
-      // Background
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Background gradient header
+      const headerHeight = 120;
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      grad.addColorStop(0, '#7f1d1d');
+      grad.addColorStop(0.5, '#991b1b');
+      grad.addColorStop(1, '#ea580c');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, headerHeight);
+      // Body background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, headerHeight, canvas.width, canvas.height - headerHeight);
 
-      // Title
-      ctx.fillStyle = '#dc2626';
-      ctx.font = 'bold 48px Arial';
-      ctx.fillText('Mondas Snack Bar - Orders Dashboard', 50, 60);
-      ctx.fillStyle = '#666';
-      ctx.font = '24px Arial';
-      ctx.fillText(new Date().toLocaleString(), 50, 100);
+      // Title + branding
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 44px Arial';
+      ctx.fillText('MONDAS Orders Report', 40, 75);
+      ctx.font = '600 18px Arial';
+      ctx.fillText(new Date().toLocaleString(), 1050, 85);
 
-      // Stats
+      // Logo (best-effort)
+      try {
+        const logo = new Image();
+        logo.src = '/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png';
+        await new Promise((res) => { logo.onload = () => res(null); logo.onerror = () => res(null); });
+        ctx.globalAlpha = 0.25;
+        ctx.drawImage(logo, canvas.width - 220, 10, 180, 100);
+        ctx.globalAlpha = 1;
+      } catch {}
+
+      // KPI boxes
+      let chartsTop = headerHeight + 200;
       if (stats) {
-        let yPos = 180;
-        ctx.font = 'bold 20px Arial';
-        ctx.fillStyle = '#333';
-        ctx.fillText('Key Performance Indicators', 50, yPos);
-        
-        yPos += 60;
-        const statsData = [
-          ['Total Orders', stats.totalOrders],
-          ['Pending Orders', stats.pendingOrders],
-          ['Delivered Orders', stats.deliveredOrders],
-          ['Total Revenue', `KES ${stats.totalRevenue.toLocaleString('en-KE')}`],
-          ['Out for Delivery', stats.outForDeliveryOrders || 0]
+        const aov = orders.length ? Math.round((stats.totalRevenue || 0) / Math.max(1, orders.length)) : 0;
+        const cancelled = orders.filter(o => o.status === 'CANCELLED').length;
+        const kpis = [
+          { label: 'Total Orders', value: String(stats.totalOrders) },
+          { label: 'Pending', value: String(stats.pendingOrders) },
+          { label: 'Out for Delivery', value: String(stats.outForDeliveryOrders || 0) },
+          { label: 'Delivered', value: String(stats.deliveredOrders) },
+          { label: 'Total Revenue', value: `KES ${stats.totalRevenue.toLocaleString('en-KE')}` },
+          { label: 'Avg Order Value', value: `KES ${aov.toLocaleString('en-KE')}` },
+          { label: 'Cancelled', value: String(cancelled) },
         ];
-
-        statsData.forEach(([label, value], index) => {
-          const x = 50 + (index % 3) * 350;
-          const y = yPos + Math.floor(index / 3) * 120;
-          
-          ctx.fillStyle = '#dc2626';
-          ctx.font = 'bold 36px Arial';
-          ctx.fillText(String(value), x, y);
-          ctx.fillStyle = '#666';
-          ctx.font = '18px Arial';
-          ctx.fillText(label, x, y + 40);
+        const startY = headerHeight + 20;
+        const startX = 40;
+        const boxW = 260;
+        const boxH = 90;
+        kpis.forEach((kpi, i) => {
+          const x = startX + (i % 3) * (boxW + 20);
+          const y = startY + Math.floor(i / 3) * (boxH + 20);
+          ctx.fillStyle = '#fef3c7';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.fillRect(x, y, boxW, boxH);
+          ctx.strokeRect(x, y, boxW, boxH);
+          ctx.fillStyle = '#6b7280';
+          ctx.font = '600 16px Arial';
+          ctx.fillText(kpi.label, x + 14, y + 28);
+          ctx.fillStyle = '#111827';
+          ctx.font = '800 28px Arial';
+          ctx.fillText(kpi.value, x + 14, y + 64);
         });
+        const rows = Math.ceil(kpis.length / 3);
+        chartsTop = startY + rows * (boxH + 20) + 30;
+      }
+
+      // Prepare data for charts
+      const statusCounts = ['PENDING','CONFIRMED','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED','CANCELLED']
+        .map(s => ({ s, c: orders.filter(o => o.status === s).length }));
+      const byDayMap = new Map<string, number>();
+      orders.forEach(o => {
+        const d = new Date(o.createdAt);
+        const key = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+        byDayMap.set(key, (byDayMap.get(key) || 0) + 1);
+      });
+      const byDay = Array.from(byDayMap.entries()).sort((a,b) => a[0] < b[0] ? -1 : 1);
+
+      // Bar chart: status distribution
+      const chart1X = 40, chart1Y = chartsTop, chart1W = 640, chart1H = 300;
+      const chart2X = 740, chart2Y = chartsTop, chart2W = 620, chart2H = 300;
+
+      // Prefer Apache ECharts if available for crisp export; fallback to Plotly
+      const ensureECharts = async (): Promise<any> => {
+        const w = window as any;
+        if (w.echarts) return w.echarts;
+        await new Promise<void>((resolve) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
+          s.onload = () => resolve();
+          s.onerror = () => resolve();
+          document.head.appendChild(s);
+        });
+        return (window as any).echarts;
+      };
+
+      const echartsLib = await ensureECharts();
+
+      if (echartsLib) {
+        const d1 = document.createElement('div');
+        const d2 = document.createElement('div');
+        d1.style.cssText = `position:fixed;left:-9999px;top:-9999px;width:${chart1W}px;height:${chart1H}px;background:#fff;`;
+        d2.style.cssText = `position:fixed;left:-9999px;top:-9999px;width:${chart2W}px;height:${chart2H}px;background:#fff;`;
+        document.body.appendChild(d1); document.body.appendChild(d2);
+        const c1 = echartsLib.init(d1, undefined, { renderer: 'canvas' });
+        c1.setOption({ animation: false, grid:{left:40,right:10,top:30,bottom:60}, xAxis:{type:'category',data:statusCounts.map(s=>s.s.replace(/_/g,' ')),axisLabel:{rotate:25}}, yAxis:{type:'value'}, series:[{type:'bar', data:statusCounts.map(s=>s.c), itemStyle:{color:'#10b981'}}] });
+        const c2 = echartsLib.init(d2, undefined, { renderer: 'canvas' });
+        c2.setOption({ animation: false, grid:{left:50,right:10,top:30,bottom:60}, xAxis:{type:'category',data:byDay.map(d=>d[0])}, yAxis:{type:'value'}, series:[{type:'line', data:byDay.map(d=>d[1]), lineStyle:{color:'#ef4444',width:3}, itemStyle:{color:'#f59e0b'}}] });
+        await new Promise(res => setTimeout(res, 120));
+        const url1 = c1.getDataURL({ pixelRatio: 3, backgroundColor: '#ffffff' });
+        const url2 = c2.getDataURL({ pixelRatio: 3, backgroundColor: '#ffffff' });
+        const i1 = new Image(); const i2 = new Image();
+        await new Promise<void>(res=>{let c=0;i1.onload=()=>{if(++c===2)res();};i2.onload=()=>{if(++c===2)res();}; i1.src=url1; i2.src=url2;});
+        ctx.fillStyle = '#111827'; ctx.font = '700 20px Arial'; ctx.fillText('Orders by Status', chart1X, chart1Y - 12);
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.fillRect(chart1X-10, chart1Y-10, chart1W+20, chart1H+20); ctx.strokeRect(chart1X-10, chart1Y-10, chart1W+20, chart1H+20);
+        ctx.drawImage(i1, chart1X, chart1Y);
+        ctx.fillStyle = '#111827'; ctx.font = '700 20px Arial'; ctx.fillText('Orders Over Time', chart2X, chart2Y - 12);
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.fillRect(chart2X-10, chart2Y-10, chart2W+20, chart2H+20); ctx.strokeRect(chart2X-10, chart2Y-10, chart2W+20, chart2H+20);
+        ctx.drawImage(i2, chart2X, chart2Y);
+        c1.dispose(); c2.dispose(); document.body.removeChild(d1); document.body.removeChild(d2);
+      } else if (Plotly) {
+        const temp1 = document.createElement('div');
+        const temp2 = document.createElement('div');
+        temp1.style.position = 'fixed'; temp1.style.left = '-9999px';
+        temp2.style.position = 'fixed'; temp2.style.left = '-9999px';
+        document.body.appendChild(temp1); document.body.appendChild(temp2);
+
+        const barData = [{
+          x: statusCounts.map(s => s.s.replace(/_/g,' ')),
+          y: statusCounts.map(s => s.c),
+          type: 'bar', marker: { color: ['#ef4444','#f59e0b','#f59e0b','#ef4444','#f59e0b','#10b981','#ef4444'] }
+        }];
+        const lineData = [{
+          x: byDay.map(d => d[0]), y: byDay.map(d => d[1]), type: 'scatter', mode: 'lines+markers',
+          line: { color: '#ef4444', width: 3 }, marker: { color: '#f59e0b' }
+        }];
+        await Plotly.newPlot(temp1, barData, { width: chart1W, height: chart1H, margin: { l: 40, r: 10, t: 20, b: 60 }, paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' }, { displayModeBar: false });
+        await Plotly.newPlot(temp2, lineData, { width: chart2W, height: chart2H, margin: { l: 50, r: 10, t: 20, b: 60 }, paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' }, { displayModeBar: false });
+        const img1 = await Plotly.toImage(temp1, { format: 'png', width: chart1W, height: chart1H });
+        const img2 = await Plotly.toImage(temp2, { format: 'png', width: chart2W, height: chart2H });
+        const imgEl1 = new Image(); const imgEl2 = new Image();
+        await new Promise<void>(res => { let c=0; imgEl1.onload=() => { if(++c===2) res(); }; imgEl2.onload=() => { if(++c===2) res(); }; imgEl1.src = img1; imgEl2.src = img2; });
+        ctx.fillStyle = '#111827'; ctx.font = '700 20px Arial'; ctx.fillText('Orders by Status', chart1X, chart1Y - 12);
+        // Chart frames
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 2;
+        ctx.fillRect(chart1X-10, chart1Y-10, chart1W+20, chart1H+20);
+        ctx.strokeRect(chart1X-10, chart1Y-10, chart1W+20, chart1H+20);
+        ctx.drawImage(imgEl1, chart1X, chart1Y);
+        ctx.fillText('Orders Over Time', chart2X, chart2Y - 12);
+        ctx.fillRect(chart2X-10, chart2Y-10, chart2W+20, chart2H+20);
+        ctx.strokeRect(chart2X-10, chart2Y-10, chart2W+20, chart2H+20);
+        ctx.drawImage(imgEl2, chart2X, chart2Y);
+        document.body.removeChild(temp1); document.body.removeChild(temp2);
       }
 
       // Convert to blob and download
@@ -544,12 +688,12 @@ const OrdersDashboard: React.FC = () => {
           const link = document.createElement('a');
           const url = URL.createObjectURL(blob);
           link.setAttribute('href', url);
-          link.setAttribute('download', `mondas_dashboard_${new Date().toISOString().split('T')[0]}.png`);
+          link.setAttribute('download', `mondas_orders_report_${new Date().toISOString().split('T')[0]}.png`);
           link.style.visibility = 'hidden';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          toast.success('PNG dashboard exported successfully!');
+          toast.success('PNG report exported successfully!');
         }
       }, 'image/png');
     } catch (error) {
@@ -605,8 +749,8 @@ const OrdersDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
-          <p className="text-gray-600">Manage and track all orders</p>
+          <h1 className={`text-2xl font-bold ${variant === 'modal' ? 'text-white' : 'text-gray-900'}`}>Orders Dashboard</h1>
+          <p className={`${variant === 'modal' ? 'text-white/90' : 'text-gray-700'}`}>Manage and track all orders</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -687,13 +831,13 @@ const OrdersDashboard: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className={`w-full pl-14 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${variant==='modal' ? 'bg-white/10 text-white placeholder-white/70 border-white/30' : 'bg-white text-gray-900 placeholder-gray-500 border border-gray-300'}`}
               />
             </div>
           </div>
@@ -738,10 +882,11 @@ const OrdersDashboard: React.FC = () => {
           </button>
           <button
             onClick={() => handleExport('png')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold flex items-center gap-2 text-sm"
+            className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 text-sm shadow border"
+            style={{ backgroundColor: '#6d28d9', color: '#ffffff', borderColor: '#4c1d95' }}
           >
             <Download className="w-4 h-4" />
-            PNG Dashboard
+            PNG
           </button>
           <span className="text-xs text-gray-500 ml-2">
             ({filteredOrders.length} orders)

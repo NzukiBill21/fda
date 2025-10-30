@@ -51,8 +51,17 @@
       },
     },
     build: {
-      target: 'esnext',
+      target: 'es2019',
       outDir: 'build',
+      sourcemap: false,
+      minify: 'esbuild',
+      rollupOptions: {
+        treeshake: true,
+      },
+    },
+    esbuild: {
+      drop: ['console', 'debugger'],
+      legalComments: 'none',
     },
     server: {
       port: 3000,

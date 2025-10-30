@@ -85,7 +85,9 @@ const avatarColors = [
   'from-indigo-500 to-purple-500',
 ];
 
-export function ReviewsSection() {
+interface ReviewsSectionProps { onWriteReview?: () => void }
+
+export function ReviewsSection({ onWriteReview }: ReviewsSectionProps) {
   const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
   const totalReviews = reviews.length;
 
@@ -218,6 +220,7 @@ export function ReviewsSection() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={onWriteReview}
               className="px-8 py-4 rounded-full bg-white text-red-600 hover:bg-yellow-100 transition-all shadow-xl"
               style={{ fontWeight: '700' }}
             >

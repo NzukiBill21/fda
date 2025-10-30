@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, ShoppingBag, Database, DollarSign, Settings, Shield, Activity, Zap, Flame, TrendingUp, Package, BarChart3, UserPlus, UserMinus, Edit, Trash2, RefreshCw, Download, Upload, Eye, Lock, Unlock, AlertTriangle, CheckCircle, Code, Terminal, Server, Cpu, HardDrive, Network, GitBranch, Bug, Monitor, Smartphone, Globe, Wifi, WifiOff, Play, Pause, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import OrdersDashboard from './OrdersDashboard';
 
 interface SuperAdminDashboardProps {
   token: string;
+  onLogout?: () => void;
 }
 
 interface User {
@@ -27,7 +28,7 @@ interface MenuItem {
   isAvailable: boolean;
 }
 
-export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
+export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProps) {
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalUsers: 0,
@@ -531,8 +532,15 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-950 via-orange-900 to-yellow-900 pt-24 pb-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-red-950 via-orange-900 to-yellow-900 pt-6 pb-10 px-4 relative">
+      {/* Mondas watermark */}
+      <div className="pointer-events-none select-none absolute inset-0 opacity-10" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '600px', backgroundRepeat: 'no-repeat', backgroundPosition: 'right -100px top -80px', filter: 'blur(1px)'}} />
       <div className="container mx-auto max-w-7xl">
+        {/* Local top bar: logo + logout */}
+        <div className="flex items-center justify-between mb-3">
+          <img src="/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png" alt="Mondas" className="h-10 w-auto" />
+          <button onClick={onLogout} className="px-4 py-2 rounded-lg bg-white/15 text-white border border-white/30 hover:bg-white/25">Logout</button>
+        </div>
         {/* Header with System Status */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -544,8 +552,8 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
             <span className="text-white font-bold text-2xl">SUPER ADMIN</span>
             <Flame className="w-6 h-6 text-yellow-200 animate-pulse" />
           </div>
-          <h1 className="text-5xl font-extrabold text-white mb-2 drop-shadow-2xl">
-            Monda Control Center
+          <h1 className="text-4xl font-extrabold text-white mb-2 drop-shadow-2xl tracking-tight">
+            Mondas Control Center
           </h1>
           <p className="text-yellow-200 text-lg font-semibold">Full System Control & Administration</p>
           
@@ -569,7 +577,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
         {/* Navigation Tabs */}
         <div className="flex justify-center mb-8">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-2 border border-white/20 nav-tabs">
-            {['overview', 'users', 'delivery', 'menu', 'system', 'devtools'].map((tab) => (
+            {['overview', 'users', 'delivery', 'menu', 'system', 'devtools', 'security'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1286,6 +1294,14 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
           </motion.div>
         )}
 
+        {activeTab === 'security' && (
+          <div className="mt-4">
+            <Suspense fallback={<div className="text-white/80">Loading security data...</div>}>
+              {React.createElement(lazy(() => import('./SecurityCenter')) as any)}
+            </Suspense>
+          </div>
+        )}
+
         {/* Footer Badge */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -1426,7 +1442,7 @@ export function SuperAdminDashboard({ token }: SuperAdminDashboardProps) {
                 }}
               >
                 <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl border-4 border-white/50">
-                  <OrdersDashboard />
+                  <OrdersDashboard token={token} variant="modal" />
                 </div>
               </div>
             </motion.div>

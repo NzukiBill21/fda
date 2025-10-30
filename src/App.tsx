@@ -45,6 +45,7 @@ export default function App() {
   const [showSlideshow, setShowSlideshow] = useState(true);
   const [deliveryComplete, setDeliveryComplete] = useState(false);
   const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
+  const [activeRole, setActiveRole] = useState<string | null>(() => sessionStorage.getItem('activeRole') || localStorage.getItem('activeRole'));
 
   // Authentication state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -65,6 +66,7 @@ export default function App() {
           if (data.user) {
             setUser(data.user);
             setAuthToken(savedToken);
+            localStorage.setItem('lastView', (data.user.roles || [])[0] || 'USER');
           } else {
             localStorage.removeItem('authToken');
           }
@@ -75,6 +77,36 @@ export default function App() {
     }
   }, []);
 
+  // Storage helpers for isolated sessions per user/guest
+  const getCartStorageKey = (u: typeof user | null) => {
+    const id = u?.id || u?.email || 'guest';
+    return `cart_${id}`;
+  };
+
+  // Restore persisted UI state (offers visibility)
+  useEffect(() => {
+    const show = localStorage.getItem('showSlideshow');
+    if (show === 'false') setShowSlideshow(false);
+  }, []);
+
+  // Load cart whenever user context becomes known
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(getCartStorageKey(user));
+      if (raw) {
+        const parsed = JSON.parse(raw) as CartItem[];
+        if (Array.isArray(parsed)) setCartItems(parsed);
+      }
+    } catch {}
+  }, [user?.id, user?.email]);
+
+  // Persist cart on changes, namespaced per user/guest
+  useEffect(() => {
+    try {
+      localStorage.setItem(getCartStorageKey(user), JSON.stringify(cartItems));
+    } catch {}
+  }, [cartItems, user?.id, user?.email]);
+
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -82,6 +114,30 @@ export default function App() {
   const isAdmin = Array.isArray(user?.roles) && (user.roles.includes('ADMIN') || user.roles.includes('Admin'));
   const isDelivery = Array.isArray(user?.roles) && (user.roles.includes('DELIVERY_GUY') || user.roles.includes('DELIVERY') || user.roles.includes('Delivery'));
   const isCaterer = Array.isArray(user?.roles) && (user.roles.includes('CATERER') || user.roles.includes('Caterer'));
+
+  // Decide which dashboard to render using a persisted preferred role if available
+  const availableRoles: string[] = [];
+  if (isSuperAdmin) availableRoles.push('SUPER_ADMIN');
+  if (isAdmin) availableRoles.push('ADMIN');
+  if (isDelivery) availableRoles.push('DELIVERY_GUY');
+  if (isCaterer) availableRoles.push('CATERER');
+
+  const priority = ['SUPER_ADMIN', 'ADMIN', 'DELIVERY_GUY', 'CATERER'];
+  const roleToRender = authToken ? (
+    (activeRole && availableRoles.includes(activeRole) ? activeRole : priority.find(r => availableRoles.includes(r)) || null)
+  ) : null;
+
+  useEffect(() => {
+    if (roleToRender) {
+      setActiveRole(roleToRender);
+      // Persist per-tab to lock each tab to its dashboard; also mirror to local as a fallback default
+      sessionStorage.setItem('activeRole', roleToRender);
+      localStorage.setItem('activeRole', roleToRender);
+    } else {
+      sessionStorage.removeItem('activeRole');
+      localStorage.removeItem('activeRole');
+    }
+  }, [roleToRender]);
 
   const handleAddToCart = (item: MenuItem) => {
     setCartItems(prev => {
@@ -235,21 +291,15 @@ export default function App() {
     setUser(null);
     setAuthToken(null);
     localStorage.removeItem('authToken');
+    localStorage.setItem('lastView', 'USER');
     toast.success('Logged out successfully');
   };
 
   // Dashboard views for different user roles
-  if (isSuperAdmin && authToken) {
+  if (roleToRender === 'SUPER_ADMIN' && authToken) {
     return (
       <div>
-        <Header 
-          cartCount={cartCount}
-          onCartClick={() => setIsCartOpen(true)}
-          user={user}
-          onLoginClick={() => setIsAuthOpen(true)}
-          onLogout={handleLogout}
-        />
-        <SuperAdminDashboard token={authToken} />
+        <SuperAdminDashboard token={authToken} onLogout={handleLogout} />
         <BackendStatus />
         <RoleIndicator user={user} />
         <AuthDialog
@@ -270,17 +320,10 @@ export default function App() {
     );
   }
 
-  if (isAdmin && authToken) {
+  if (roleToRender === 'ADMIN' && authToken) {
     return (
       <div>
-        <Header 
-          cartCount={cartCount}
-          onCartClick={() => setIsCartOpen(true)}
-          user={user}
-          onLoginClick={() => setIsAuthOpen(true)}
-          onLogout={handleLogout}
-        />
-        <AdminDashboard token={authToken} setIsAuthOpen={setIsAuthOpen} />
+        <AdminDashboard token={authToken} setIsAuthOpen={setIsAuthOpen} onLogout={handleLogout} />
         <BackendStatus />
         <RoleIndicator user={user} />
         <AuthDialog
@@ -301,7 +344,7 @@ export default function App() {
     );
   }
 
-  if (isCaterer && authToken) {
+  if (roleToRender === 'CATERER' && authToken) {
     return (
       <div className="min-h-screen">
         <CatererDashboard token={authToken} user={user} onLogout={handleLogout} />
@@ -324,7 +367,7 @@ export default function App() {
     );
   }
 
-  if (isDelivery && authToken) {
+  if (roleToRender === 'DELIVERY_GUY' && authToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900">
         <DeliveryDashboard token={authToken} user={user} />
@@ -350,12 +393,13 @@ export default function App() {
   // Normal food ordering interface for customers
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-950 via-red-900 to-yellow-900">
-      <Header 
+        <Header 
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
         user={user}
         onLoginClick={() => setIsAuthOpen(true)}
-        onLogout={handleLogout}
+          onLogout={handleLogout}
+          showCart={true}
       />
       
       <main className="pt-16 sm:pt-20">
@@ -369,7 +413,7 @@ export default function App() {
               <HeroSlideshow 
                 onAddToCart={handleAddToCart}
                 onOpenCart={() => setIsCheckoutOpen(true)}
-                onDismiss={() => setShowSlideshow(false)}
+                onDismiss={() => { setShowSlideshow(false); localStorage.setItem('showSlideshow', 'false'); }}
               />
             </motion.div>
           )}
@@ -385,7 +429,7 @@ export default function App() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setShowSlideshow(true)}
+              onClick={() => { setShowSlideshow(true); localStorage.setItem('showSlideshow', 'true'); }}
               className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg shadow-lg hover:from-orange-600 hover:to-red-600 transition-all font-semibold mobile-sticky-btn"
             >
               Show Offers
@@ -413,7 +457,7 @@ export default function App() {
           className="py-20 bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-900"
         >
           <div className="container mx-auto px-4 max-w-6xl">
-            <ReviewsSection />
+            <ReviewsSection onWriteReview={() => setIsReviewOpen(true)} />
           </div>
         </motion.section>
 
@@ -499,7 +543,7 @@ export default function App() {
       />
 
       <ReviewDialog
-        isOpen={isReviewOpen && deliveryConfirmed}
+        isOpen={isReviewOpen}
         onClose={() => {
           setIsReviewOpen(false);
           setDeliveryConfirmed(false);
