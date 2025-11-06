@@ -12,15 +12,21 @@ export function BackendStatus() {
 
   const checkBackend = async () => {
     try {
-      const response = await fetch('http://localhost:5000/health');
+      const response = await fetch('http://localhost:5000/health', {
+        signal: AbortSignal.timeout(3000) // 3 second timeout
+      });
       const data = await response.json();
       if (data.status === 'OK') {
         setStatus('connected');
-        setVersion(data.version);
+        setVersion(data.version || '1.0.0');
       } else {
         setStatus('disconnected');
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Silently handle connection errors (backend not running)
+      if (error.name !== 'AbortError' && !error.message?.includes('Failed to fetch')) {
+        // Only log non-connection errors
+      }
       setStatus('disconnected');
     }
   };

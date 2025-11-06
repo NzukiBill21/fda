@@ -89,16 +89,19 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
             setSlides(slidesFromAPI);
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch menu items for slideshow:', error);
+      } catch (error: any) {
+        // Only log if not a connection refused error
+        if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
+          console.error('Failed to fetch menu items for slideshow:', error);
+        }
         // Keep using default slides if API fails
       }
     };
 
     fetchMenuItems();
     
-    // Refresh every 30 seconds to catch updates
-    const interval = setInterval(fetchMenuItems, 30000);
+    // Refresh every 60 seconds to catch updates (reduced frequency for performance)
+    const interval = setInterval(fetchMenuItems, 60000);
     
     return () => clearInterval(interval);
   }, []);

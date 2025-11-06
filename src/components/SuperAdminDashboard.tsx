@@ -326,6 +326,9 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
       duration: 1000, // Reduced duration
     });
     
+    // Check if ID looks invalid (not a UUID format)
+    const isInvalidId = itemId && !itemId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    
     try {
       let endpoint = '';
       let method = 'POST';
@@ -355,16 +358,52 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
         fetchMenuItems();
         logActivity(`${actionName}`, `Item ID: ${itemId} - ${data.message || 'Operation completed'}`);
       } else {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Action failed');
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `HTTP ${res.status}: ${res.statusText}`;
+        
+        // If invalid ID or 400/404 error - item doesn't exist, remove from UI
+        if (action === 'delete' && (isInvalidId || res.status === 404 || res.status === 400)) {
+          toast.dismiss(loadingToast);
+          toast.info('Item not found in database. Removing from list...');
+          // Remove from local state immediately
+          setMenuItems((prev: any[]) => prev.filter((item: any) => item.id !== itemId));
+          // Refresh to sync with backend
+          fetchMenuItems();
+          return;
+        }
+        
+        // Check for foreign key constraint errors
+        if (action === 'delete' && res.status === 400 && (
+          errorMessage.includes('referenced') || 
+          errorMessage.includes('orders') || 
+          errorMessage.includes('carts') ||
+          errorMessage.includes('Foreign key')
+        )) {
+          toast.dismiss(loadingToast);
+          toast.error('Cannot delete: This item is in orders or carts. Mark it as unavailable instead.', {
+            duration: 5000
+          });
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
-      toast.dismiss(loadingToast); // Dismiss loading toast
-      toast.error(`❌ Failed to ${actionName.toLowerCase()}`, {
-        description: error.message || 'Please try again',
-        duration: 2000, // Reduced duration
-      });
-      logActivity(`${actionName} Failed`, `Item ID: ${itemId} - ${error.message}`);
+      // If invalid ID or network error, remove from UI
+      if (action === 'delete' && (isInvalidId || error.message?.includes('not exist') || error.message?.includes('P2025') || error.message?.includes('Failed to fetch'))) {
+        toast.dismiss(loadingToast);
+        toast.info('Item may not exist in database. Removing from list...');
+        // Remove from local state immediately
+        setMenuItems((prev: any[]) => prev.filter((item: any) => item.id !== itemId));
+        fetchMenuItems();
+      } else {
+        toast.dismiss(loadingToast); // Dismiss loading toast
+        toast.error(`❌ Failed to ${actionName.toLowerCase()}`, {
+          description: error.message || 'Please try again',
+          duration: 2000, // Reduced duration
+        });
+        logActivity(`${actionName} Failed`, `Item ID: ${itemId} - ${error.message}`);
+      }
     }
   };
 

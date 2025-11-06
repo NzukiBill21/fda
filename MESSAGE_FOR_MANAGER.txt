@@ -1,0 +1,41 @@
+Hi [Manager Name],
+
+I need some Hostinger server details to deploy the food delivery app to mymondas.app. 
+
+Could you please provide the following information from your Hostinger account?
+
+=== FTP/SFTP ACCESS ===
+1. Log into Hostinger hPanel
+2. Go to: Files → FTP Accounts
+3. Share:
+   - FTP Host: (usually ftp.mymondas.app or an IP)
+   - FTP Username: 
+   - FTP Password: 
+
+=== DATABASE DETAILS ===
+1. Go to: Databases → MySQL Databases (or PostgreSQL)
+2. If database exists, share:
+   - Database Host: (usually localhost)
+   - Database Name: 
+   - Database Username: 
+   - Database Password: 
+3. If no database exists, please create one and share the details
+
+=== HOSTING PLAN ===
+1. Go to: Account → Subscription
+2. Share: Plan Type (Shared/VPS/Cloud)
+
+=== SSH ACCESS (Optional) ===
+1. Go to: Advanced → SSH Access
+2. Share: SSH Status (Enabled/Disabled)
+
+OR
+
+You can add me as a collaborator with full access:
+1. Go to: Account → Collaborators
+2. Add my email with full access
+
+Once I have these details, I can deploy the app and get it live on mymondas.app!
+
+Thanks!
+

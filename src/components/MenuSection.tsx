@@ -72,195 +72,8 @@ const getUnsplashImageForMenuItem = (name: string, category: string): string => 
   return categoryMap[category] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&h=800&fit=crop&q=85';
 };
 
-export const menuItems: MenuItem[] = [
-  // Premium
-  {
-    id: 'ribs-1',
-    name: 'Tender BBQ Ribs',
-    description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce',
-    price: 4000,
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&h=800&fit=crop&q=85',
-    category: 'Premium',
-    rating: 5.0,
-    reviews: 284,
-    popular: true,
-  },
-  {
-    id: 'steak-1',
-    name: 'Premium Steak Combo',
-    description: 'Perfectly grilled premium beef steak with seasonal vegetables',
-    price: 8000,
-    image: 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=1200&h=800&fit=crop&q=85',
-    category: 'Premium',
-    rating: 4.9,
-    reviews: 156,
-    popular: true,
-  },
-  {
-    id: 'nyama-1',
-    name: 'Nyama Choma Special',
-    description: 'Authentic Kenyan roasted goat meat with kachumbari',
-    price: 1800,
-    image: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=1200&h=800&fit=crop&q=85',
-    category: 'African Specials',
-    rating: 4.9,
-    reviews: 342,
-    popular: true,
-    spicy: true,
-  },
-  
-  // African Specials
-  {
-    id: 'pilau-1',
-    name: 'Beef Pilau',
-    description: 'Aromatic spiced rice with tender beef chunks, steaming hot',
-    price: 650,
-    image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=1200&h=800&fit=crop&q=85',
-    category: 'African Specials',
-    rating: 4.8,
-    reviews: 428,
-    popular: true,
-  },
-  {
-    id: 'biryani-1',
-    name: 'Chicken Biryani',
-    description: 'Fragrant basmati rice layered with spiced chicken',
-    price: 750,
-    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=1200&h=800&fit=crop&q=85',
-    category: 'African Specials',
-    rating: 4.7,
-    reviews: 215,
-    spicy: true,
-  },
-  {
-    id: 'tilapia-1',
-    name: 'Grilled Tilapia',
-    description: 'Fresh tilapia grilled to perfection with ugali and sukuma',
-    price: 950,
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=1200&h=800&fit=crop&q=85',
-    category: 'African Specials',
-    rating: 4.8,
-    reviews: 187,
-  },
-  {
-    id: 'ugali-1',
-    name: 'Ugali & Beef Stew',
-    description: 'Traditional maize meal with rich beef stew and greens',
-    price: 550,
-    image: 'https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?w=1200&h=800&fit=crop&q=85',
-    category: 'African Specials',
-    rating: 4.6,
-    reviews: 298,
-  },
-  {
-    id: 'samosa-1',
-    name: 'Beef Samosas (6pc)',
-    description: 'Crispy golden pastry filled with spiced minced beef',
-    price: 300,
-    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=1200&h=800&fit=crop&q=85',
-    category: 'African Specials',
-    rating: 4.7,
-    reviews: 412,
-  },
-  
-  // Burgers
-  {
-    id: '1',
-    name: 'Classic Burger Combo',
-    description: 'Juicy beef burger with crispy fries and special sauce',
-    price: 850,
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&h=800&fit=crop&q=85',
-    category: 'Burgers',
-    rating: 4.8,
-    reviews: 124,
-    popular: true,
-  },
-  
-  // Chicken
-  {
-    id: '2',
-    name: 'Spicy Chicken Wings',
-    description: '8 pieces of spicy glazed wings with ranch dip',
-    price: 650,
-    image: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=1200&h=800&fit=crop&q=85',
-    category: 'Chicken',
-    rating: 4.9,
-    reviews: 98,
-    spicy: true,
-    popular: true,
-  },
-  
-  // Snacks
-  {
-    id: '3',
-    name: 'Loaded Nachos',
-    description: 'Crispy nachos with cheese, jalapeños, and guacamole',
-    price: 550,
-    image: 'https://images.unsplash.com/photo-1582169296194-e4d644c48063?w=1200&h=800&fit=crop&q=85',
-    category: 'Snacks',
-    rating: 4.6,
-    reviews: 76,
-    vegetarian: true,
-  },
-  {
-    id: '6',
-    name: 'Crispy French Fries',
-    description: 'Golden crispy fries with your choice of sauce',
-    price: 300,
-    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=1200&h=800&fit=crop&q=85',
-    category: 'Snacks',
-    rating: 4.4,
-    reviews: 203,
-    vegetarian: true,
-  },
-  
-  // Pizza
-  {
-    id: '4',
-    name: 'Pepperoni Pizza',
-    description: 'Large pepperoni pizza with mozzarella cheese',
-    price: 1200,
-    image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=1200&h=800&fit=crop&q=85',
-    category: 'Pizza',
-    rating: 4.7,
-    reviews: 145,
-    popular: true,
-  },
-  
-  // Hot Dogs
-  {
-    id: '5',
-    name: 'Gourmet Hot Dog',
-    description: 'Premium beef sausage with caramelized onions',
-    price: 450,
-    image: 'https://images.unsplash.com/photo-1612392062798-2ad99e4f4e7e?w=1200&h=800&fit=crop&q=85',
-    category: 'Hot Dogs',
-    rating: 4.5,
-    reviews: 89,
-  },
-  
-  // Drinks
-  {
-    id: 'drink-soda',
-    name: 'Soft Drinks (500ml)',
-    description: 'Coca Cola, Sprite, Fanta - Chilled to perfection',
-    price: 150,
-    image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=1200&h=800&fit=crop&q=85',
-    category: 'Drinks',
-    rating: 4.5,
-    reviews: 256,
-  },
-  {
-    id: 'drink-shake',
-    name: 'Milkshakes',
-    description: 'Chocolate, Vanilla, or Strawberry milkshake',
-    price: 400,
-    image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=1200&h=800&fit=crop&q=85',
-    category: 'Drinks',
-    rating: 4.8,
-    reviews: 189,
-  },
-];
+// Static menu items removed - only backend items are used
+export const menuItems: MenuItem[] = [];
 
 // Helper to sanitize image URLs
 const sanitizeImageUrl = (url: string | undefined, name: string, category: string): string => {
@@ -281,48 +94,63 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
   const [onlySpicy, setOnlySpicy] = useState(false);
   const [onlyVeggie, setOnlyVeggie] = useState(false);
   const [sortBy, setSortBy] = useState<'match' | 'priceAsc' | 'priceDesc' | 'ratingDesc'>('match');
-  // Sanitize initial menuItems to remove any placeholder images
-  const sanitizedInitialItems = menuItems.map(item => ({
-    ...item,
-    image: sanitizeImageUrl(item.image, item.name, item.category)
-  }));
-  const [currentMenuItems, setCurrentMenuItems] = useState<MenuItem[]>(sanitizedInitialItems);
+  // Start with empty menu - only backend items
+  const [currentMenuItems, setCurrentMenuItems] = useState<MenuItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch menu items from backend
+  // Fetch menu items from backend ONLY - optimized with timeout
   useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+    
     const fetchMenuItems = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/menu');
+        const res = await fetch('http://localhost:5000/api/menu', {
+          signal: abortController.signal,
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (!isMounted) return;
+        
         const data = await res.json();
-        if (data.success && data.menuItems) {
+        if (data.success && data.menuItems && data.menuItems.length > 0) {
           const mappedItems = data.menuItems.map((item: any) => ({
             id: item.id,
             name: item.name,
             description: item.description || '',
             price: item.price,
             image: sanitizeImageUrl(item.image, item.name, item.category),
-            category: item.category,
+            category: item.category || 'Main Courses',
             rating: item.rating || 4.5,
             reviews: 0,
-            popular: item.isFeatured,
+            popular: item.isFeatured || false,
             spicy: false,
             vegetarian: item.isVegetarian || false
           }));
-          // Merge with existing items to avoid duplicates, and sanitize all images
-          setCurrentMenuItems(prevItems => {
-            const existingIds = new Set(prevItems.map(i => i.id));
-            const newItems = mappedItems.filter((item: any) => !existingIds.has(item.id));
-            // Sanitize all items (existing and new) to ensure no placeholder images
-            const allItems = [...prevItems, ...newItems].map(item => ({
-              ...item,
-              image: sanitizeImageUrl(item.image, item.name, item.category)
-            }));
-            return allItems;
-          });
+          // Only use backend items - no static items
+          if (isMounted) {
+            setCurrentMenuItems(mappedItems);
+          }
+        } else {
+          // No items from backend - show empty state
+          if (isMounted) {
+            setCurrentMenuItems([]);
+          }
         }
-      } catch (error) {
-        console.error('Failed to fetch menu items:', error);
+      } catch (error: any) {
+        if (!isMounted || error.name === 'AbortError') return;
+        
+        // Only log if not a connection refused error
+        if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
+          console.error('Failed to fetch menu items:', error);
+        }
+        // On error, show empty state
+        if (isMounted) {
+          setCurrentMenuItems([]);
+        }
       }
     };
 
@@ -330,13 +158,29 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
     
     // Also listen for menu updates from MenuEditor
     const handleMenuUpdate = (event: CustomEvent) => {
-      console.log('Menu updated!', event.detail.menuItems.length, 'items');
-      setCurrentMenuItems(event.detail.menuItems);
+      if (event.detail && event.detail.menuItems) {
+        const mappedItems = event.detail.menuItems.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          price: item.price,
+          image: sanitizeImageUrl(item.image, item.name, item.category),
+          category: item.category || 'Main Courses',
+          rating: item.rating || 4.5,
+          reviews: 0,
+          popular: item.isFeatured || false,
+          spicy: false,
+          vegetarian: item.isVegetarian || false
+        }));
+        setCurrentMenuItems(mappedItems);
+      }
     };
 
     window.addEventListener('menuItemsUpdated', handleMenuUpdate as EventListener);
     
     return () => {
+      isMounted = false;
+      abortController.abort();
       window.removeEventListener('menuItemsUpdated', handleMenuUpdate as EventListener);
     };
   }, []);
@@ -404,7 +248,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
       .map(x => x.item);
   }, [searchTerm, currentMenuItems]);
 
-  const filteredItems = (() => {
+  const filteredItems = useMemo(() => {
     let filtered = currentMenuItems;
     
     // Filter by category
@@ -439,7 +283,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
     if (sortBy === 'ratingDesc') filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     
     return filtered;
-  })();
+  }, [currentMenuItems, selectedCategory, searchTerm, priceFilter, onlyPopular, onlySpicy, onlyVeggie, sortBy]);
 
   const handleAddToCart = (item: MenuItem, event: React.MouseEvent) => {
     onAddToCart(item);
@@ -673,20 +517,39 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                 >
                   <motion.div
                     whileHover={{ y: -8, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.25)' }}
-                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden h-full flex flex-col"
+                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col"
+                    style={{ height: '420px', width: '100%' }}
                   >
-                    {/* Image */}
-                    <div className="relative h-32 sm:h-48 lg:h-56 xl:h-64 overflow-hidden">
+                    {/* Image - Fixed height for consistency */}
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '240px', width: '100%' }}>
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        style={{ 
+                          objectFit: 'cover', 
+                          objectPosition: 'center',
+                          width: '100%',
+                          height: '240px',
+                          display: 'block'
+                        }}
                         loading="lazy"
                         onError={(e) => {
                           // Replace broken placeholder images with fallback
                           const target = e.target as HTMLImageElement;
-                          const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
-                          if (target.src !== fallbackImage) {
+                          // Check if it's a placeholder or broken image
+                          if (target.src.includes('placeholder') || target.src.includes('via.placeholder') || !target.complete) {
+                            const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
+                            if (target.src !== fallbackImage) {
+                              target.src = fallbackImage;
+                            }
+                          }
+                        }}
+                        onLoad={(e) => {
+                          // Silently handle successful loads
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('placeholder') || target.src.includes('via.placeholder')) {
+                            const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
                             target.src = fallbackImage;
                           }
                         }}
@@ -726,9 +589,9 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                       </motion.button>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-3 sm:p-5 lg:p-6 flex-1 flex flex-col">
-                      <div className="flex items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                    {/* Content - Fixed height for consistency */}
+                    <div className="p-3 sm:p-4 lg:p-5 flex-1 flex flex-col overflow-hidden" style={{ height: '180px', minHeight: '180px', maxHeight: '180px' }}>
+                      <div className="flex items-center gap-1 sm:gap-2 mb-2 flex-shrink-0">
                         <div className="flex items-center gap-0.5 sm:gap-1">
                           <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-xs sm:text-sm text-gray-900 font-semibold">
@@ -738,16 +601,16 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                         <span className="text-xs sm:text-sm text-gray-500">({item.reviews})</span>
                       </div>
 
-                      <h3 className="text-sm sm:text-lg lg:text-xl text-gray-900 mb-1 sm:mb-2 font-bold line-clamp-1">{item.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-4 line-clamp-1 sm:line-clamp-2 flex-1">{item.description}</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg text-gray-900 mb-1 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 flex-1 overflow-hidden">{item.description}</p>
 
-                      <div className="flex items-center justify-between mt-auto gap-2">
-                        <div className="flex flex-col">
+                      <div className="flex items-center justify-between mt-auto gap-2 flex-shrink-0">
+                        <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-xs text-gray-500 uppercase tracking-wide hidden lg:inline">Price</span>
                           <div className="flex items-end gap-1">
-                            <span className="text-sm sm:text-base font-semibold text-gray-600 leading-none">KES</span>
+                            <span className="text-sm sm:text-base font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
                             <span
-                              className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-none"
+                              className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-none truncate"
                               style={{ letterSpacing: '-0.02em' }}
                             >
                               {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -763,7 +626,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           }}
                           whileTap={{ scale: 0.9 }}
                           onClick={(e) => handleAddToCart(item, e)}
-                          className="p-2 sm:p-3 lg:p-4 rounded-xl lg:rounded-2xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
+                          className="p-2 sm:p-3 lg:p-4 rounded-xl lg:rounded-2xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0"
                         >
                           <Plus className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                         </motion.button>

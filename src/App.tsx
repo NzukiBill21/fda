@@ -18,6 +18,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { DeliveryDashboard } from './components/DeliveryDashboard';
 import { CatererDashboard } from './components/CatererDashboard';
 import { CartSheet } from './components/CartSheet';
+import { PasswordChangeDialog } from './components/PasswordChangeDialog';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -49,8 +50,9 @@ export default function App() {
 
   // Authentication state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [user, setUser] = useState<{ id?: string; name: string; email: string; roles: string[] } | null>(null);
+  const [user, setUser] = useState<{ id?: string; name: string; email: string; roles: string[]; mustChangePassword?: boolean } | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   // Check for saved auth token on mount
   useEffect(() => {
@@ -59,14 +61,26 @@ export default function App() {
       fetch('http://localhost:5000/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${savedToken}`
-        }
+        },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
       })
         .then(res => res.json())
+        .catch((error: any) => {
+          // Silently handle connection errors
+          if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
+            console.error('Auth check error:', error);
+          }
+        })
         .then(data => {
           if (data.user) {
             setUser(data.user);
             setAuthToken(savedToken);
             localStorage.setItem('lastView', (data.user.roles || [])[0] || 'USER');
+            
+            // Check if password change is required on mount
+            if (data.user.mustChangePassword && (data.user.roles?.includes('ADMIN') || data.user.roles?.includes('SUPER_ADMIN'))) {
+              setShowPasswordChange(true);
+            }
           } else {
             localStorage.removeItem('authToken');
           }
@@ -284,7 +298,35 @@ export default function App() {
     setAuthToken(token);
     setIsAuthOpen(false);
     localStorage.setItem('authToken', token);
-    toast.success(`Welcome back, ${user.name}!`);
+    
+    // Check if password change is required (for managers/admins on first login)
+    if (user.mustChangePassword && (user.roles?.includes('ADMIN') || user.roles?.includes('SUPER_ADMIN'))) {
+      setShowPasswordChange(true);
+      toast.info('Please change your password to access your account', { duration: 5000 });
+    } else {
+      toast.success(`Welcome back, ${user.name}!`);
+    }
+  };
+
+  const handlePasswordChanged = async () => {
+    // Refresh user data to get updated mustChangePassword status
+    if (authToken) {
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        const data = await response.json();
+        if (data.user) {
+          setUser(data.user);
+          setShowPasswordChange(false);
+          toast.success('Password changed successfully! You can now access your account.');
+        }
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -296,6 +338,28 @@ export default function App() {
   };
 
   // Dashboard views for different user roles
+  // Show password change dialog if required (blocks dashboard access)
+  if (showPasswordChange && authToken) {
+    return (
+      <div>
+        <PasswordChangeDialog
+          isOpen={showPasswordChange}
+          token={authToken}
+          onPasswordChanged={handlePasswordChanged}
+        />
+        <Toaster 
+          position="top-right" 
+          toastOptions={{
+            style: {
+              borderRadius: '1rem',
+              padding: '1rem',
+            },
+          }}
+        />
+      </div>
+    );
+  }
+
   if (roleToRender === 'SUPER_ADMIN' && authToken) {
     return (
       <div>
@@ -320,7 +384,7 @@ export default function App() {
     );
   }
 
-  if (roleToRender === 'ADMIN' && authToken) {
+  if (roleToRender === 'ADMIN' && authToken && !showPasswordChange) {
     return (
       <div>
         <AdminDashboard token={authToken} setIsAuthOpen={setIsAuthOpen} onLogout={handleLogout} />

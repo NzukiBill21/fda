@@ -142,7 +142,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
     try {
       const tk = resolveToken();
       if (!tk) {
-        console.log('No auth token found, skipping orders fetch');
+        // Silently skip if no token (user not logged in)
         return;
       }
       
@@ -183,7 +183,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
     try {
       const tk = resolveToken();
       if (!tk) {
-        console.log('No auth token found, skipping stats fetch');
+        // Silently skip if no token (user not logged in)
         return;
       }
       
@@ -219,10 +219,13 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
     
     loadData();
 
-    // lightweight polling for live updates
+    // lightweight polling for live updates (only if token exists)
     const poll = setInterval(() => {
-      fetchOrders();
-      fetchStats();
+      const tk = resolveToken();
+      if (tk) {
+        fetchOrders();
+        fetchStats();
+      }
     }, 5000);
 
     return () => clearInterval(poll);
@@ -259,14 +262,14 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
     try {
       // Randomize demo order items to create variety in pricing
       const menuItems = ['ribs-1', 'soft-drinks-1', 'burger-1', 'pizza-1', 'chicken-1'];
-      const randomItems = [];
+      const randomItems: Array<{ menuItemId: string; quantity: number }> = [];
       const itemCount = Math.floor(Math.random() * 3) + 1; // 1-3 items
       
       for (let i = 0; i < itemCount; i++) {
         const randomItemId = menuItems[Math.floor(Math.random() * menuItems.length)];
         const quantity = Math.floor(Math.random() * 3) + 1; // 1-3 quantity
         // Avoid duplicates
-        if (!randomItems.find(item => item.menuItemId === randomItemId)) {
+        if (!randomItems.find((item: any) => item.menuItemId === randomItemId)) {
           randomItems.push({ menuItemId: randomItemId, quantity });
         }
       }
@@ -749,8 +752,8 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className={`text-2xl font-bold ${variant === 'modal' ? 'text-white' : 'text-gray-900'}`}>Orders Dashboard</h1>
-          <p className={`${variant === 'modal' ? 'text-white/90' : 'text-gray-700'}`}>Manage and track all orders</p>
+          <h1 className="text-2xl font-bold text-white">Orders Dashboard</h1>
+          <p className="text-white">Manage and track all orders</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -827,17 +830,18 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
       )}
 
       {/* Filters and Export */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white/95 backdrop-blur-xl rounded-xl shadow-lg p-6 border-2 border-white/50">
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none z-10" />
               <input
                 type="text"
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-14 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${variant==='modal' ? 'bg-white/10 text-white placeholder-white/70 border-white/30' : 'bg-white text-gray-900 placeholder-gray-500 border border-gray-300'}`}
+                className="w-full pr-4 py-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none font-medium shadow-sm transition-all"
+                style={{ paddingLeft: '4rem' }}
               />
             </div>
           </div>
@@ -845,7 +849,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none font-medium shadow-sm"
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>

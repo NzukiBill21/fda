@@ -226,10 +226,11 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
       title: 'Total Revenue', 
       value: `KES ${stats.totalRevenue.toLocaleString()}`, 
       icon: DollarSign, 
-      color: 'from-emerald-500 to-green-600', 
+      color: 'from-emerald-600 to-green-700', 
       trend: revenueGrowth,
       trendUp: true,
-      bgGlow: 'bg-emerald-500/20' 
+      bgGlow: 'bg-emerald-500/20',
+      iconDark: true
     },
     { 
       title: 'Total Orders', 
@@ -262,10 +263,11 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
       title: 'Pending Orders', 
       value: stats.pendingOrders, 
       icon: Clock, 
-      color: 'from-orange-500 to-red-600', 
+      color: 'from-orange-600 to-red-700', 
       trend: 'Live',
       trendUp: null,
-      bgGlow: 'bg-orange-500/20' 
+      bgGlow: 'bg-orange-500/20',
+      iconDark: true
     },
     { 
       title: 'Completed', 
@@ -303,7 +305,7 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
       <div className="container mx-auto max-w-7xl">
         {/* Local top bar */}
         <div className="flex items-center justify-between mb-3">
-          <img src="/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png" alt="Mondas" className="h-10 w-auto" />
+          <img src="/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png" alt="Mondas" className="h-20 w-auto" />
           <button onClick={onLogout} className="px-4 py-2 rounded-lg bg-white/15 text-white border border-white/30 hover:bg-white/25">Logout</button>
         </div>
         {/* Header with Actions */}
@@ -322,7 +324,7 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
               <h1 className="text-3xl font-extrabold text-white mb-1 drop-shadow-2xl tracking-tight">
                 Business Intelligence
               </h1>
-              <p className="text-yellow-200 text-base font-semibold">PowerBI-Level Analytics & Insights</p>
+              <p className="text-white text-base font-semibold drop-shadow-lg">PowerBI-Level Analytics & Insights</p>
             </div>
 
             {/* Quick Actions */}
@@ -456,8 +458,14 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
                   <div className={`absolute -inset-0.5 ${stat.bgGlow} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-300`} />
                   <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border-2 border-white/50 group-hover:border-yellow-400 transition-all h-full hover:shadow-yellow-500/20">
                     <div className="flex items-center justify-between mb-4">
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
-                        <Icon className="w-7 h-7 text-white" />
+                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg relative overflow-hidden`}>
+                        {/* Add a darker overlay for better icon visibility */}
+                        <div className={`absolute inset-0 ${(stat as any).iconDark ? 'bg-black/20' : 'bg-black/10'}`} />
+                        <Icon className={`w-7 h-7 relative z-10 text-white`} style={{
+                          filter: (stat.title === 'Total Revenue' || stat.title === 'Pending Orders') 
+                            ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.8)) brightness(1.1)' 
+                            : 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))'
+                        }} strokeWidth={2.5} />
                       </div>
                       {stat.trendUp !== null && (
                         <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
@@ -611,9 +619,9 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {recentOrders.length === 0 ? (
                 <div className="col-span-2 text-center py-12">
-                  <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
-                  <p className="text-gray-300 text-lg">No orders yet. Waiting for customers...</p>
-                  <p className="text-gray-400 text-sm mt-2">Orders will appear here in real-time</p>
+                  <ShoppingBag className="w-16 h-16 text-white/50 mx-auto mb-4 opacity-50" />
+                  <p className="text-white/90 text-lg">No orders yet. Waiting for customers...</p>
+                  <p className="text-white/70 text-sm mt-2">Orders will appear here in real-time</p>
                 </div>
               ) : (
                 recentOrders.slice(0, 4).map((order, index) => (
@@ -632,7 +640,7 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
                           <p className="text-white font-bold text-lg">{order.orderNumber}</p>
                           <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
                             order.status === 'DELIVERED' ? 'bg-green-500 text-white' :
-                            order.status === 'OUT_FOR_DELIVERY' ? 'bg-yellow-500 text-black' :
+                            order.status === 'OUT_FOR_DELIVERY' ? 'bg-yellow-500 text-white drop-shadow-md' :
                             order.status === 'PENDING' ? 'bg-orange-500 text-white' :
                             order.status === 'CONFIRMED' ? 'bg-blue-500 text-white' :
                             'bg-red-500 text-white'
@@ -641,8 +649,8 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
                           </span>
                         </div>
                         <p className="text-yellow-300 text-sm font-semibold">{order.customerName}</p>
-                        <p className="text-gray-300 text-xs">{order.customerPhone}</p>
-                        <p className="text-gray-400 text-xs mt-2">
+                        <p className="text-white/80 text-xs">{order.customerPhone}</p>
+                        <p className="text-white/70 text-xs mt-2">
                           {new Date(order.createdAt).toLocaleString()}
                         </p>
                       </div>
@@ -686,17 +694,17 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <p className="text-gray-300 text-sm mb-2">Today's Revenue</p>
+                  <p className="text-white/90 text-sm mb-2">Today's Revenue</p>
                   <p className="text-4xl font-black text-green-400">KES {Math.round(stats.totalRevenue * 0.3).toLocaleString()}</p>
                   <p className="text-green-300 text-sm mt-2">+18% from yesterday</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <p className="text-gray-300 text-sm mb-2">This Week</p>
+                  <p className="text-white/90 text-sm mb-2">This Week</p>
                   <p className="text-4xl font-black text-yellow-400">KES {Math.round(stats.totalRevenue * 0.7).toLocaleString()}</p>
                   <p className="text-yellow-300 text-sm mt-2">+22% from last week</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <p className="text-gray-300 text-sm mb-2">This Month</p>
+                  <p className="text-white/90 text-sm mb-2">This Month</p>
                   <p className="text-4xl font-black text-orange-400">KES {stats.totalRevenue.toLocaleString()}</p>
                   <p className="text-orange-300 text-sm mt-2">+24% from last month</p>
                 </div>
@@ -715,19 +723,19 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
-                  <p className="text-gray-300 text-sm mb-2">Avg Rating</p>
+                  <p className="text-white/90 text-sm mb-2">Avg Rating</p>
                   <p className="text-3xl font-black text-yellow-400">4.8 ⭐</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
-                  <p className="text-gray-300 text-sm mb-2">Repeat Customers</p>
+                  <p className="text-white/90 text-sm mb-2">Repeat Customers</p>
                   <p className="text-3xl font-black text-green-400">68%</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
-                  <p className="text-gray-300 text-sm mb-2">Peak Hour</p>
+                  <p className="text-white/90 text-sm mb-2">Peak Hour</p>
                   <p className="text-3xl font-black text-blue-400">7 PM</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
-                  <p className="text-gray-300 text-sm mb-2">Avg Delivery</p>
+                  <p className="text-white/90 text-sm mb-2">Avg Delivery</p>
                   <p className="text-3xl font-black text-purple-400">28min</p>
                 </div>
               </div>
@@ -756,18 +764,27 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
             className="space-y-6"
           >
             {/* Users Page Header */}
-            <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl p-6 border border-blue-500/30">
-              <div className="flex items-center gap-4">
+            <div className="relative backdrop-blur-xl rounded-2xl p-6 border border-white/30 overflow-hidden">
+              {/* Scattered logo color pigments */}
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-red-500 rounded-full blur-3xl" />
+                <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-1/4 w-36 h-36 bg-yellow-500 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 right-1/3 w-28 h-28 bg-red-600 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-orange-400 rounded-full blur-3xl" />
+                <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-yellow-400 rounded-full blur-3xl" />
+              </div>
+              <div className="relative flex items-center gap-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">User Management</h2>
-                  <p className="text-blue-200">Manage user accounts and permissions</p>
+                  <h2 className="text-2xl font-bold text-white drop-shadow-lg">User Management</h2>
+                  <p className="text-white drop-shadow-md">Manage user accounts and permissions</p>
                 </div>
                 <button
                   onClick={fetchUsers}
-                  className="ml-auto px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all"
+                  className="relative z-10 ml-auto px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all"
                 >
                   <RefreshCw className="w-4 h-4 inline mr-2" />
                   Refresh Users
@@ -779,8 +796,8 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
             <div className="bg-gradient-to-br from-red-900/40 to-orange-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
               {users.length === 0 ? (
                 <div className="text-center py-12">
-                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
-                  <p className="text-gray-300 text-lg mb-4">No users found</p>
+                  <Users className="w-16 h-16 text-white/50 mx-auto mb-4 opacity-50" />
+                  <p className="text-white/90 text-lg mb-4">No users found</p>
                   <button
                     onClick={fetchUsers}
                     className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all"
@@ -809,7 +826,7 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
                           <td className="py-4 px-2">
                             <div>
                               <p className="font-semibold">{user.name}</p>
-                              <p className="text-sm text-gray-300">{user.email}</p>
+                              <p className="text-sm text-white/80">{user.email}</p>
                             </div>
                           </td>
                           <td className="py-4 px-2">
@@ -846,21 +863,30 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
             className="space-y-6"
           >
             {/* Delivery Page Header */}
-            <div className="bg-gradient-to-r from-green-500/20 to-teal-500/20 backdrop-blur-xl rounded-2xl p-6 border border-green-500/30">
-              <div className="flex items-center gap-4">
+            <div className="relative backdrop-blur-xl rounded-2xl p-6 border border-white/30 overflow-hidden">
+              {/* Scattered logo color pigments */}
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-red-500 rounded-full blur-3xl" />
+                <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-1/4 w-36 h-36 bg-yellow-500 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 right-1/3 w-28 h-28 bg-red-600 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-orange-400 rounded-full blur-3xl" />
+                <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-yellow-400 rounded-full blur-3xl" />
+              </div>
+              <div className="relative flex items-center gap-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
                   <Truck className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Delivery Drivers</h2>
-                  <p className="text-green-200">Monitor online status and performance</p>
+                  <h2 className="text-2xl font-bold text-white drop-shadow-lg">Delivery Drivers</h2>
+                  <p className="text-white drop-shadow-md">Monitor online status and performance</p>
                 </div>
                 <button
                   onClick={() => {
                     fetchDeliveryGuys();
                     toast.success('Refreshed delivery data', { duration: 2000 });
                   }}
-                  className="ml-auto px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all"
+                  className="relative z-10 ml-auto px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all"
                 >
                   <RefreshCw className="w-4 h-4 inline mr-2" />
                   Refresh
@@ -872,9 +898,9 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
             <div className="bg-gradient-to-br from-red-900/40 to-orange-900/40 backdrop-blur-xl rounded-3xl p-8 border-2 border-yellow-500/30 shadow-2xl">
               {deliveryGuys.length === 0 ? (
                 <div className="text-center py-12">
-                  <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
-                  <p className="text-gray-300 text-lg mb-4">No delivery drivers found</p>
-                  <p className="text-gray-400 text-sm">Assign DELIVERY_GUY role to users to see them here</p>
+                  <Truck className="w-16 h-16 text-white/50 mx-auto mb-4 opacity-50" />
+                  <p className="text-white/90 text-lg mb-4">No delivery drivers found</p>
+                  <p className="text-white/70 text-sm">Assign DELIVERY_GUY role to users to see them here</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -888,21 +914,21 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <p className="font-semibold text-white text-lg">{driver.name}</p>
-                          <p className="text-sm text-gray-300">{driver.email}</p>
+                          <p className="text-sm text-white/80">{driver.email}</p>
                         </div>
                         <div className={`w-4 h-4 rounded-full ${driver.isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-300 text-sm">Status</span>
+                          <span className="text-white/90 text-sm">Status</span>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            driver.isOnline ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'
+                            driver.isOnline ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-white/70'
                           }`}>
                             {driver.isOnline ? '🟢 Online' : '⚫ Offline'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-300 text-sm">Account</span>
+                          <span className="text-white/90 text-sm">Account</span>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             driver.isActive ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
                           }`}>

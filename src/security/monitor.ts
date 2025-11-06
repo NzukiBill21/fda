@@ -140,16 +140,35 @@ export function initSecurityMonitor(options: MonitorOptions) {
         send('auth_error', { status: res.status, url: (args[0] as RequestInfo) });
       }
       return res;
-    } catch (err) {
-      send('network_error', { error: String(err), url: (args[0] as RequestInfo) });
+    } catch (err: any) {
+      // Don't report connection refused errors (backend not running)
+      const url = String(args[0] || '');
+      if (!err.message?.includes('ERR_CONNECTION_REFUSED') && 
+          !err.message?.includes('Failed to fetch') &&
+          !url.includes('/api/security/log')) {
+        send('network_error', { error: String(err), url });
+      }
       throw err;
     }
   };
 
   // Probe reporting endpoint once; if missing, disable network reporting to avoid noisy 404s in dev
   try {
-    fetch(options.reportUrl, { method: 'HEAD', mode: 'no-cors' }).then(() => {}).catch(() => { networkDisabled = true; });
-  } catch { networkDisabled = true; }
+    fetch(options.reportUrl, { method: 'HEAD', mode: 'no-cors' })
+      .then(() => {})
+      .catch(() => { 
+        networkDisabled = true; 
+      });
+  } catch { 
+    networkDisabled = true; 
+  }
+  
+  // Disable network reporting if endpoint is blocked
+  setTimeout(() => {
+    if (networkDisabled) {
+      // Silently disable to avoid console spam
+    }
+  }, 2000);
 }
 
 

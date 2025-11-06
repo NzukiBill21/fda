@@ -34,24 +34,33 @@ export function Footer() {
               <motion.a
                 whileHover={{ scale: 1.1, backgroundColor: 'rgba(220, 38, 38, 0.2)' }}
                 whileTap={{ scale: 0.95 }}
-                href="#"
+                href="https://www.facebook.com/mondaske"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all backdrop-blur-sm border border-white/10"
+                title="Follow us on Facebook"
               >
                 <Facebook className="w-5 h-5" />
               </motion.a>
               <motion.a
                 whileHover={{ scale: 1.1, backgroundColor: 'rgba(220, 38, 38, 0.2)' }}
                 whileTap={{ scale: 0.95 }}
-                href="#"
+                href="https://www.instagram.com/mondaske"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all backdrop-blur-sm border border-white/10"
+                title="Follow us on Instagram"
               >
                 <Instagram className="w-5 h-5" />
               </motion.a>
               <motion.a
                 whileHover={{ scale: 1.1, backgroundColor: 'rgba(220, 38, 38, 0.2)' }}
                 whileTap={{ scale: 0.95 }}
-                href="#"
+                href="https://x.com/mondaske"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all backdrop-blur-sm border border-white/10"
+                title="Follow us on X (Twitter)"
               >
                 <Twitter className="w-5 h-5" />
               </motion.a>

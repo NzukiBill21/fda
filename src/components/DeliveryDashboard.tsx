@@ -361,7 +361,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
             setProfileImage(avatarValue);
             backendHasImage = true;
           } else {
-            console.log('No avatarUrl in backend profile response (null, empty, or undefined)');
+            // No avatarUrl in backend profile response - using default/placeholder
             // Don't clear existing image if backend doesn't have one - it might still be loading
           }
           
