@@ -16,13 +16,17 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'],
+  origin: process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(url => url.trim())
+    : process.env.NODE_ENV === 'production'
+      ? [] // Production: must set CORS_ORIGIN
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'],
   credentials: true
 }));
 app.use(compression());
 app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -94,6 +98,76 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// Change password endpoint
+app.post('/api/auth/change-password', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    // Get user to verify current password
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const bcrypt = require('bcryptjs');
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear mustChangePassword flag
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: {
+        password: hashedNewPassword,
+        mustChangePassword: false
+      }
+    });
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        userId: decoded.userId,
+        action: 'PASSWORD_CHANGED',
+        entity: 'AUTH',
+        details: 'User changed password successfully',
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error: any) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/auth/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -105,7 +179,18 @@ app.get('/api/auth/me', async (req, res) => {
     const decoded = await authService.verifyToken(token);
     const user = await authService.getUserById(decoded.userId);
     
-    res.json({ user });
+    // Get mustChangePassword flag from database
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { mustChangePassword: true }
+    });
+    
+    res.json({ 
+      user: {
+        ...user,
+        mustChangePassword: dbUser?.mustChangePassword || false
+      }
+    });
   } catch (error: any) {
     res.status(401).json({ error: error.message });
   }
@@ -672,9 +757,20 @@ app.post('/api/admin/users/:userId/promote', async (req, res) => {
       }
     });
 
+    // If promoting to ADMIN or SUPER_ADMIN, set mustChangePassword to true
+    // This forces them to change their password on first login
+    if (roleName === 'ADMIN' || roleName === 'SUPER_ADMIN') {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          mustChangePassword: true
+        }
+      });
+    }
+
     res.json({
       success: true,
-      message: `User promoted to ${roleName} successfully`
+      message: `User promoted to ${roleName} successfully${roleName === 'ADMIN' || roleName === 'SUPER_ADMIN' ? '. They will be required to change their password on first login.' : ''}`
     });
   } catch (error: any) {
     console.error('User promotion error:', error);
@@ -799,23 +895,6 @@ app.post('/api/admin/menu/:itemId/toggle', async (req, res) => {
     res.json({
       success: true,
       message: 'Menu item status updated'
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete('/api/admin/menu/:itemId', async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    
-    await prisma.menuItem.delete({
-      where: { id: itemId }
-    });
-
-    res.json({
-      success: true,
-      message: 'Menu item deleted successfully'
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -1030,7 +1109,10 @@ app.put('/api/admin/menu/:id', async (req, res) => {
     }
 
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
+
+    // Remove id from updateData - Prisma doesn't allow updating the id field
+    delete updateData.id;
 
     // First check if the item exists
     const existingItem = await prisma.menuItem.findUnique({
@@ -1044,17 +1126,36 @@ app.put('/api/admin/menu/:id', async (req, res) => {
       });
     }
 
-    // Parse JSON fields if they exist
-    if (updateData.nutrition) {
-      updateData.nutrition = JSON.stringify(updateData.nutrition);
+    // Filter out fields that don't exist in the schema or shouldn't be updated
+    const allowedFields = [
+      'name', 'description', 'price', 'category', 'image', 'rating',
+      'isPopular', 'isSpicy', 'isVegetarian', 'isAvailable', 'isFeatured',
+      'stock', 'prepTime', 'nutrition', 'allergens'
+    ];
+    
+    const filteredData: any = {};
+    for (const key of allowedFields) {
+      if (updateData.hasOwnProperty(key)) {
+        filteredData[key] = updateData[key];
+      }
     }
-    if (updateData.allergens) {
-      updateData.allergens = JSON.stringify(updateData.allergens);
+
+    // Parse JSON fields if they exist
+    if (filteredData.nutrition && typeof filteredData.nutrition === 'object') {
+      filteredData.nutrition = JSON.stringify(filteredData.nutrition);
+    }
+    if (filteredData.allergens && Array.isArray(filteredData.allergens)) {
+      filteredData.allergens = JSON.stringify(filteredData.allergens);
+    }
+
+    // Ensure category is a string
+    if (filteredData.category && typeof filteredData.category !== 'string') {
+      filteredData.category = String(filteredData.category);
     }
 
     const menuItem = await prisma.menuItem.update({
       where: { id },
-      data: updateData
+      data: filteredData
     });
 
     res.json({
@@ -1085,6 +1186,31 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
 
     const { id } = req.params;
 
+    // Check if item exists first
+    const existingItem = await prisma.menuItem.findUnique({
+      where: { id }
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Menu item not found. It may have already been deleted.' 
+      });
+    }
+
+    // Check if item is referenced in orders
+    const orderItems = await prisma.orderItem.findMany({
+      where: { menuItemId: id },
+      take: 1
+    });
+    
+    if (orderItems.length > 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Cannot delete this item. It is referenced in existing orders. Please mark it as unavailable instead.' 
+      });
+    }
+
     await prisma.menuItem.delete({
       where: { id }
     });
@@ -1095,7 +1221,82 @@ app.delete('/api/admin/menu/:id', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Menu deletion error:', error);
+    // Handle Prisma foreign key constraint errors
+    if (error.code === 'P2003' || error.message?.includes('Foreign key constraint')) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Cannot delete this item. It is referenced in existing orders. Please mark it as unavailable instead.' 
+      });
+    }
+    // Handle Prisma "record not found" errors
+    if (error.code === 'P2025') {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Menu item not found. It may have already been deleted.' 
+      });
+    }
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Failed to delete menu item' 
+    });
+  }
+});
+
+// Get categories endpoint
+app.get('/api/admin/categories', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = await authService.verifyToken(token);
+    
+    if (!decoded.roles.includes('SUPER_ADMIN') && !decoded.roles.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // Get unique categories from menu items
+    const menuItems = await prisma.menuItem.findMany({
+      select: { category: true }
+    });
+
+    // Extract unique categories
+    const uniqueCategories = new Set<string>();
+    menuItems.forEach(item => {
+      if (item.category) {
+        uniqueCategories.add(item.category);
+      }
+    });
+
+    const categories = Array.from(uniqueCategories).sort();
+
+    res.json({
+      success: true,
+      categories
+    });
+  } catch (error: any) {
+    console.error('Get categories error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Security log endpoint
+app.post('/api/security/log', async (req, res) => {
+  try {
+    // Just acknowledge the log - don't store it for now
+    res.json({ success: true, message: 'Log received' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.head('/api/security/log', async (req, res) => {
+  try {
+    res.status(200).end();
+  } catch (error: any) {
+    res.status(500).end();
   }
 });
 
@@ -1263,48 +1464,12 @@ app.post('/api/orders', async (req, res) => {
         // Use database price as source of truth, but allow cart price if item doesn't exist in DB
         itemPrice = menuItem.price;
       } else if (!itemPrice || itemPrice === 0) {
-      // If menu item doesn't exist and no price provided, create it
-        // Map of known menu items with proper names
-        const menuItemNames: { [key: string]: { name: string; description: string; price: number; category: string } } = {
-          'ribs-1': { name: 'Tender BBQ Ribs', description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce', price: 4000, category: 'Premium' },
-          'steak-1': { name: 'Premium Steak Combo', description: 'Perfectly grilled premium beef steak with seasonal vegetables', price: 8000, category: 'Premium' },
-          'nyama-1': { name: 'Nyama Choma Special', description: 'Authentic Kenyan roasted goat meat with kachumbari', price: 1800, category: 'African Specials' },
-          'pilau-1': { name: 'Beef Pilau', description: 'Aromatic spiced rice with tender beef chunks, steaming hot', price: 650, category: 'African Specials' },
-          'ugali-1': { name: 'Ugali & Sukuma', description: 'Traditional Kenyan maize meal with collard greens', price: 300, category: 'African Specials' },
-          'chicken-1': { name: 'Grilled Chicken', description: 'Perfectly seasoned grilled chicken breast', price: 1200, category: 'Main Course' },
-          'fish-1': { name: 'Tilapia Fry', description: 'Fresh tilapia fish fried to golden perfection', price: 1500, category: 'Main Course' },
-          'pizza-1': { name: 'Margherita Pizza', description: 'Classic tomato, mozzarella, and basil pizza', price: 2000, category: 'Italian' },
-          'burger-1': { name: 'Classic Burger', description: 'Juicy beef patty with fresh vegetables', price: 1800, category: 'Fast Food' },
-          'pasta-1': { name: 'Spaghetti Carbonara', description: 'Creamy pasta with bacon and parmesan', price: 1600, category: 'Italian' }
-        };
-
-        // Use price from cart item, or fallback to reasonable default
+      // If menu item doesn't exist and no price provided, use price from cart or default
+        // Hardcoded menu items removed - all items must be added through menu editor
         const fallbackPrice = item.price || 500;
-        const itemData = menuItemNames[menuItemId] || {
-          name: `Delicious ${menuItemId.replace('-', ' ').replace(/\d+/g, '').trim()}`,
-          description: 'Fresh and delicious meal prepared with care',
-          price: fallbackPrice,
-          category: 'Custom'
-        };
-        itemPrice = itemData.price;
-
-        menuItem = await prisma.menuItem.create({
-          data: {
-            id: menuItemId,
-            name: itemData.name,
-            description: itemData.description,
-            price: itemData.price,
-            image: getMenuItemImageUrl(itemData.name, itemData.category),
-            category: itemData.category,
-            rating: 4.5,
-            isAvailable: true,
-            isPopular: false,
-            isSpicy: false,
-            isVegetarian: false,
-            nutrition: JSON.stringify({}),
-            allergens: JSON.stringify([])
-          }
-        });
+        itemPrice = fallbackPrice;
+        // Don't create menu items automatically - they must exist in database
+        // menuItem will remain null, and we'll return an error below
       }
 
       if (!menuItem) {
@@ -2067,10 +2232,7 @@ app.post('/api/demo/order', async (req, res) => {
       customerName = 'Demo Customer',
       customerPhone = '+254700000000',
       deliveryAddress = 'Nairobi, Kenya',
-      items = [
-        { menuItemId: 'ribs-1', quantity: 1 },
-        { menuItemId: 'soft-drinks-1', quantity: 2 }
-      ]
+      items = [] // Demo order items - should be provided or will use first available item
     } = req.body;
 
     // Generate unique order number
@@ -2136,27 +2298,12 @@ app.post('/api/demo/order', async (req, res) => {
       }
     }
 
-    // If no items were found, create a default demo item
+    // If no items were found, return error - no hardcoded items
     if (orderItems.length === 0) {
-      let fallback = await prisma.menuItem.findUnique({ where: { id: 'demo-item-1' } });
-      if (!fallback) {
-        fallback = await prisma.menuItem.create({
-          data: {
-            id: 'demo-item-1',
-            name: 'Demo Burger',
-            description: 'A delicious demo burger for testing',
-            price: 1250,
-            category: 'Fast Food',
-            rating: 4.5,
-            isAvailable: true,
-            isPopular: false,
-            isSpicy: false,
-            isVegetarian: false
-          }
-        });
-      }
-      orderItems.push({ menuItemId: fallback.id, quantity: 1, price: fallback.price });
-      total = fallback.price;
+      return res.status(400).json({ 
+        success: false,
+        error: 'No valid order items found. Please ensure menu items exist in the database.' 
+      });
     }
 
     // Add delivery fee and tax (same logic as regular orders)
@@ -2317,6 +2464,8 @@ app.post('/api/admin/sync-menu', async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
+    // Hardcoded menu items removed - all items should be added through the menu editor
+    // This endpoint is kept for backward compatibility but no longer syncs hardcoded items
     const frontendMenuItems: Array<{
       id: string;
       name: string;
@@ -2327,18 +2476,7 @@ app.post('/api/admin/sync-menu', async (req, res) => {
       isPopular: boolean;
       isSpicy: boolean;
       isVegetarian: boolean;
-    }> = [
-      { id: 'ribs-1', name: 'Tender BBQ Ribs', description: 'Fall-off-the-bone ribs glazed with our signature BBQ sauce', price: 4000, category: 'Premium', rating: 5.0, isPopular: true, isSpicy: false, isVegetarian: false },
-      { id: 'steak-1', name: 'Premium Steak Combo', description: 'Perfectly grilled premium beef steak with seasonal vegetables', price: 8000, category: 'Premium', rating: 4.9, isPopular: true, isSpicy: false, isVegetarian: false },
-      { id: 'nyama-1', name: 'Nyama Choma Special', description: 'Authentic Kenyan roasted goat meat with kachumbari', price: 1800, category: 'African Specials', rating: 4.9, isPopular: true, isSpicy: true, isVegetarian: false },
-      { id: 'pilau-1', name: 'Beef Pilau', description: 'Aromatic spiced rice with tender beef chunks, steaming hot', price: 650, category: 'African Specials', rating: 4.8, isPopular: true, isSpicy: false, isVegetarian: false },
-      { id: 'ugali-1', name: 'Ugali & Sukuma', description: 'Traditional Kenyan maize meal with collard greens', price: 300, category: 'African Specials', rating: 4.7, isPopular: false, isSpicy: false, isVegetarian: true },
-      { id: 'chicken-1', name: 'Grilled Chicken', description: 'Perfectly seasoned grilled chicken breast', price: 1200, category: 'Main Course', rating: 4.6, isPopular: false, isSpicy: false, isVegetarian: false },
-      { id: 'fish-1', name: 'Tilapia Fry', description: 'Fresh tilapia fish fried to golden perfection', price: 1500, category: 'Main Course', rating: 4.8, isPopular: false, isSpicy: false, isVegetarian: false },
-      { id: 'pizza-1', name: 'Margherita Pizza', description: 'Classic tomato, mozzarella, and basil pizza', price: 2000, category: 'Italian', rating: 4.7, isPopular: false, isSpicy: false, isVegetarian: true },
-      { id: 'burger-1', name: 'Classic Burger', description: 'Juicy beef patty with fresh vegetables', price: 1800, category: 'Fast Food', rating: 4.5, isPopular: false, isSpicy: false, isVegetarian: false },
-      { id: 'pasta-1', name: 'Spaghetti Carbonara', description: 'Creamy pasta with bacon and parmesan', price: 1600, category: 'Italian', rating: 4.6, isPopular: false, isSpicy: false, isVegetarian: false }
-    ];
+    }> = [];
 
     const syncedItems = [];
     for (const item of frontendMenuItems) {
@@ -2437,25 +2575,16 @@ app.post('/api/demo/order', async (req, res) => {
       });
     }
     
-    // Ensure demo menu item exists
-    let demoMenuItem = await prisma.menuItem.findUnique({
-      where: { id: 'demo-item-1' }
+    // Demo order requires existing menu items - no hardcoded items
+    // Get first available menu item or return error
+    const demoMenuItem = await prisma.menuItem.findFirst({
+      where: { isAvailable: true }
     });
     
     if (!demoMenuItem) {
-      demoMenuItem = await prisma.menuItem.create({
-        data: {
-          id: 'demo-item-1',
-          name: 'Demo Burger',
-          description: 'A delicious demo burger for testing',
-          price: 1250,
-          category: 'Fast Food',
-          rating: 4.5,
-          isAvailable: true,
-          isPopular: false,
-          isSpicy: false,
-          isVegetarian: false
-        }
+      return res.status(400).json({
+        success: false,
+        error: 'No menu items available. Please add items through the menu editor first.'
       });
     }
     
@@ -2464,7 +2593,7 @@ app.post('/api/demo/order', async (req, res) => {
         orderNumber,
         userId: demoUser.id,
         status: 'PENDING',
-        total: 1250 * 2,
+        total: demoMenuItem.price * 2,
         paymentMethod: 'CASH',
         deliveryAddress: 'Demo Address, Nairobi',
         deliveryNotes: 'Demo order for testing',
@@ -2476,9 +2605,9 @@ app.post('/api/demo/order', async (req, res) => {
         items: {
           create: [
             {
-              menuItemId: 'demo-item-1',
+              menuItemId: demoMenuItem.id,
               quantity: 2,
-              price: 1250
+              price: demoMenuItem.price
             }
           ]
         }

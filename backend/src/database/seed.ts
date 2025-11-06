@@ -62,11 +62,14 @@ async function main() {
   // Create Regular Admin
   const regularAdmin = await prisma.user.upsert({
     where: { email: 'manager@monda.com' },
-    update: {},
+    update: {
+      mustChangePassword: true // Force password change on first login
+    },
     create: {
       email: 'manager@monda.com',
       password: hashedPasswordAdmin,
       name: 'Manager Admin',
+      mustChangePassword: true, // Force password change on first login
       phone: '+254700000001',
     },
   });

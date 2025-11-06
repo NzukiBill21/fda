@@ -1,14 +1,14 @@
-// Prisma Schema - Full RBAC Implementation
+// Prisma Schema - Production (PostgreSQL)
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// RBAC: Roles (using String for SQLite compatibility)
+// RBAC: Roles (using String for PostgreSQL compatibility)
 // Valid values: SUPER_ADMIN, ADMIN, SUB_ADMIN, USER, DELIVERY_GUY
 // Valid OrderStatus: PENDING, CONFIRMED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
 // Valid PaymentMethod: MPESA, CASH, CARD
@@ -28,7 +28,6 @@ model User {
   loginAttempts Int       @default(0)
   lockedUntil   DateTime?
   lastLogin     DateTime?
-  mustChangePassword Boolean @default(false) // Force password change on first login
 
   // Relationships
   roles              UserRole[]
@@ -61,23 +60,19 @@ model UserRole {
 
 // Delivery Guy Profile
 model DeliveryGuyProfile {
-  id                   String   @id @default(uuid())
-  userId               String   @unique
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status               String   @default("offline") // online, offline, delivering
-  avatarUrl            String?
-  latitude             Float?
-  longitude            Float?
-  totalDeliveries      Int      @default(0)
-  successfulDeliveries Int      @default(0)
-  averageRating        Float?
-  totalEarnings        Float    @default(0)
-  isAvailable          Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleType   String?
+  licenseNumber String?
+  status        String   @default("offline") // online, offline, busy
+  currentLat    Float?
+  currentLng    Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-// Menu Item
+// Menu Item Model
 model MenuItem {
   id          String      @id @default(uuid())
   name        String
@@ -102,35 +97,25 @@ model MenuItem {
 
 // Order Model
 model Order {
-  id              String   @id @default(uuid())
-  orderNumber     String   @unique
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  deliveryGuyId   String?
-  deliveryGuy     User?    @relation("DeliveryGuy", fields: [deliveryGuyId], references: [id])
-  status          String   @default("PENDING")
-  total           Float
-  paymentMethod   String   @default("CASH") // CASH, MPESA, CARD
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  deliveryGuyId String?
+  deliveryGuy   User?         @relation("DeliveryGuy", fields: [deliveryGuyId], references: [id])
+  status        String        @default("PENDING") // PENDING, CONFIRMED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  total         Float
+  paymentMethod String?       // MPESA, CASH, CARD
+  paymentStatus String?       // PENDING, PAID, FAILED
   deliveryAddress String
-  deliveryNotes   String?
-  customerName    String
-  customerPhone   String
-  deliveryLatitude Float?
-  deliveryLongitude Float?
-  estimatedDeliveryTime Int? // minutes
-  actualDeliveryTime DateTime?
-  confirmedAt      DateTime?
-  preparingAt      DateTime?
-  readyAt          DateTime?
-  pickedUpAt       DateTime?
-  deliveredAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  items           OrderItem[]
-  trackingHistory OrderTracking[]
+  deliveryLat   Float?
+  deliveryLng   Float?
+  items         OrderItem[]
+  trackingHistory TrackingHistory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
-// Order Items
+// Order Item Model
 model OrderItem {
   id         String   @id @default(uuid())
   orderId    String
@@ -142,27 +127,25 @@ model OrderItem {
   createdAt  DateTime @default(now())
 }
 
-// Order Tracking for real-time updates
-model OrderTracking {
-  id          String   @id @default(uuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status      String   // PENDING, CONFIRMED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
-  latitude    Float?
-  longitude   Float?
-  notes       String?
-  timestamp   DateTime @default(now())
+// Tracking History Model
+model TrackingHistory {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  location  String?
+  timestamp DateTime @default(now())
 }
 
-// Activity Log (for admin tracking)
+// Activity Log Model
 model ActivityLog {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
   action    String
-  entity    String?
   details   String?
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
 }
+

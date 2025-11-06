@@ -92,6 +92,7 @@ export class AuthService {
         name: user.name,
         phone: user.phone,
         roles,
+        mustChangePassword: user.mustChangePassword || false,
       },
     };
   }
@@ -208,6 +209,7 @@ export class AuthService {
       lastLogin: user.lastLogin,
       deliveryProfile: user.deliveryProfile,
       roles: user.roles.map(ur => ur.role.name),
+      mustChangePassword: user.mustChangePassword || false,
     };
   }
 }
