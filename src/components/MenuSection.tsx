@@ -666,8 +666,8 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
               ))}
             </div>
 
-            {/* Desktop: Grid layout with square cards */}
-            <div className="hidden lg:grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 lg:gap-8 relative z-10">
+            {/* Desktop: Grid layout with square cards - 3 columns */}
+            <div className="hidden lg:grid grid-cols-3 gap-6 lg:gap-8 relative z-10">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
