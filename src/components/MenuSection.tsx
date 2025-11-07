@@ -666,8 +666,8 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
               ))}
             </div>
 
-            {/* Desktop: Grid layout with square cards - 3 columns */}
-            <div className="hidden lg:grid grid-cols-3 gap-6 lg:gap-8 relative z-10">
+            {/* Desktop: Grid layout - 3 columns, same vertical layout as mobile */}
+            <div className="hidden lg:grid grid-cols-3 gap-6 lg:gap-8 relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
@@ -680,12 +680,12 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                   className="group relative"
                 >
                   <motion.div
-                    whileHover={{ y: -8, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.25)' }}
+                    whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
                     className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer"
-                    style={{ aspectRatio: '1 / 1', width: '100%' }}
+                    style={{ width: '100%' }}
                   >
-                    {/* Image - Takes up about 55% of the square card */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '55%', width: '100%' }}>
+                    {/* Image - Top section */}
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%' }}>
                       <img
                         src={item.image}
                         alt={item.name}
@@ -720,20 +720,20 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       
                       {/* Badges */}
-                      <div className="absolute top-4 left-4 right-4 flex justify-between items-start gap-2 flex-wrap">
+                      <div className="absolute top-3 left-3 right-3 flex justify-between items-start gap-2 flex-wrap">
                         {item.popular && (
-                          <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 border-0 shadow-lg">
+                          <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 border-0 shadow-lg text-xs px-2 py-1">
                             ⭐ Popular
                           </Badge>
                         )}
                         <div className="flex gap-2">
                           {item.spicy && (
-                            <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-0 shadow-lg">
+                            <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-0 shadow-lg text-xs px-2 py-1">
                               <Flame className="w-3 h-3 mr-1" /> Spicy
                             </Badge>
                           )}
                           {item.vegetarian && (
-                            <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-0 shadow-lg">
+                            <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-0 shadow-lg text-xs px-2 py-1">
                               <Leaf className="w-3 h-3 mr-1" /> Veggie
                             </Badge>
                           )}
@@ -744,32 +744,50 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                       <motion.button
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.9 }}
-                        className="absolute bottom-4 right-4 p-3 rounded-full bg-white/90 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute bottom-3 right-3 p-2.5 rounded-full bg-white/90 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                        aria-label="Add to favorites"
                       >
-                        <Heart className="w-5 h-5 text-red-600" />
+                        <Heart className="w-4 h-4 text-red-600" />
                       </motion.button>
                     </div>
 
-                    {/* Content - Takes up remaining 45% of the square card */}
-                    <div className="p-4 lg:p-5 flex-1 flex flex-col overflow-hidden" style={{ height: '45%', minHeight: 0 }}>
-                      <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm text-gray-900 font-semibold">
-                            {item.rating}
-                          </span>
+                    {/* Content - Bottom section */}
+                    <div className="p-4 lg:p-5 flex flex-col justify-between min-w-0 flex-shrink-0">
+                      <div className="flex-1 min-w-0 mb-3">
+                        <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-base text-gray-900 font-semibold">
+                              {item.rating}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">({item.reviews})</span>
                         </div>
-                        <span className="text-xs text-gray-500">({item.reviews})</span>
+
+                        <h3 className="text-lg lg:text-xl text-gray-900 mb-2 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
+                        <p className="text-sm lg:text-base text-gray-600 mb-2 line-clamp-2 leading-relaxed">{item.description}</p>
+                        
+                        {/* Estimated Delivery Time Badge - Glovo Style */}
+                        <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
+                            🚀 30-45 min
+                          </Badge>
+                          {(() => {
+                            const cartSubtotal = cartItems.reduce((sum, cartItem) => sum + (cartItem.menuItem?.price || cartItem.price || 0) * (cartItem.quantity || 1), 0);
+                            return cartSubtotal > 5000 ? (
+                              <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
+                                🆓 Free Delivery
+                              </Badge>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
 
-                      <h3 className="text-base lg:text-lg text-gray-900 mb-1.5 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2 flex-1 overflow-hidden min-h-0 leading-relaxed">{item.description}</p>
-
-                      <div className="flex items-center justify-between mt-auto gap-3 flex-shrink-0">
+                      <div className="flex items-center justify-between gap-4 flex-shrink-0 pt-3 border-t border-gray-200">
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Price</span>
+                          <span className="text-xs text-gray-500 uppercase tracking-wide mb-1">Price</span>
                           <div className="flex items-end gap-1">
-                            <span className="text-sm font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
+                            <span className="text-base font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
                             <span
                               className="text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-none truncate"
                               style={{ letterSpacing: '-0.02em' }}
@@ -781,16 +799,16 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                         
                         <motion.button
                           whileHover={{ 
-                            scale: 1.15, 
+                            scale: 1.1, 
                             rotate: 90,
                             boxShadow: '0 15px 40px rgba(220, 38, 38, 0.4)' 
                           }}
-                          whileTap={{ scale: 0.9 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAddToCart(item, e);
                           }}
-                          className="p-3 lg:p-3.5 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0 z-10"
+                          className="p-3 lg:p-4 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0 z-10"
                           aria-label={`Add ${item.name} to cart`}
                         >
                           <Plus className="w-5 h-5 lg:w-6 lg:h-6" />
