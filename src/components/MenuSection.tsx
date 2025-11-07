@@ -87,6 +87,7 @@ const sanitizeImageUrl = (url: string | undefined, name: string, category: strin
 export function MenuSection({ onAddToCart }: MenuSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const { items: cartItems } = useCart();
   const [showOffers, setShowOffers] = useState(true);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [priceFilter, setPriceFilter] = useState<'any' | 'budget' | 'mid' | 'premium'>('any');
