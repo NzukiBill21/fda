@@ -681,11 +681,11 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                 >
                   <motion.div
                     whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
-                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer"
+                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer h-full"
                     style={{ width: '100%' }}
                   >
-                    {/* Image - Top section */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%' }}>
+                    {/* Image - Top section - consistent height */}
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%', minHeight: '200px', maxHeight: '200px' }}>
                       <img
                         src={item.image}
                         alt={item.name}
