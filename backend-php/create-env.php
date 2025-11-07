@@ -7,16 +7,7 @@ $envFile = __DIR__ . '/.env';
 $templateFile = __DIR__ . '/ENV_TEMPLATE.txt';
 
 if (file_exists($envFile)) {
-    echo "⚠️  .env file already exists.\n";
-    echo "Do you want to overwrite it? (y/n): ";
-    $handle = fopen("php://stdin", "r");
-    $line = trim(fgets($handle));
-    fclose($handle);
-    
-    if (strtolower($line) !== 'y') {
-        echo "ℹ️  Keeping existing .env file.\n";
-        exit(0);
-    }
+    echo "⚠️  .env file already exists. Overwriting...\n";
 }
 
 if (!file_exists($templateFile)) {

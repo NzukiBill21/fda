@@ -1,0 +1,12 @@
+Copy and paste these commands one by one in your Git Bash:
+
+cd "C:/Users/billn/Downloads/Food Delivery App/backend-php"
+chmod +x run-complete-setup.sh
+./run-complete-setup.sh
+
+OR use the quick script:
+
+cd "C:/Users/billn/Downloads/Food Delivery App/backend-php"
+chmod +x START_HERE.sh
+./START_HERE.sh
+

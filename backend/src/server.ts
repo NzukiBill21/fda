@@ -20,7 +20,7 @@ app.use(cors({
     ? process.env.CORS_ORIGIN.split(',').map(url => url.trim())
     : process.env.NODE_ENV === 'production'
       ? [] // Production: must set CORS_ORIGIN
-      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'],
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(compression());
@@ -203,7 +203,8 @@ app.get('/api/auth/me', async (req, res) => {
 app.get('/api/menu', async (req, res) => {
   try {
     const items = await prisma.menuItem.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: { isAvailable: true }, // Only return available items
+      orderBy: [{ isFeatured: 'desc' }, { isPopular: 'desc' }, { createdAt: 'desc' }],
     });
     res.json({ success: true, menuItems: items });
   } catch (error: any) {

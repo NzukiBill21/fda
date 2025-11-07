@@ -5,13 +5,20 @@ const getApiUrl = (): string => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Development fallback
+  // Check if running on XAMPP (localhost/fda/...)
+  if (window.location.pathname.includes('/fda/')) {
+    // XAMPP: Use relative path to PHP backend
+    return '/fda/backend-php';
+  }
+  
+  // Development fallback (Node.js backend)
   if (import.meta.env.DEV) {
     return 'http://localhost:5000';
   }
   
   // Production fallback (if no env var set)
-  return window.location.origin.replace(/:\d+$/, ':5000');
+  // Try to detect if we're on same domain, use relative path
+  return '/fda/backend-php';
 };
 
 export const API_URL = getApiUrl();

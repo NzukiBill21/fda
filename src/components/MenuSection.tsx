@@ -112,14 +112,21 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
           signal: abortController.signal,
           cache: 'no-cache',
           headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         });
         
         if (!isMounted) return;
         
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
         const data = await res.json();
-        if (data.success && data.menuItems && data.menuItems.length > 0) {
+        console.log('Menu API Response:', { success: data.success, count: data.menuItems?.length || 0 });
+        
+        if (data.success && data.menuItems && Array.isArray(data.menuItems)) {
           const mappedItems = data.menuItems.map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -135,10 +142,12 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
           }));
           // Only use backend items - no static items
           if (isMounted) {
+            console.log('Setting menu items:', mappedItems.length);
             setCurrentMenuItems(mappedItems);
           }
         } else {
           // No items from backend - show empty state
+          console.warn('No menu items in response:', data);
           if (isMounted) {
             setCurrentMenuItems([]);
           }
@@ -146,10 +155,8 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
       } catch (error: any) {
         if (!isMounted || error.name === 'AbortError') return;
         
-        // Only log if not a connection refused error
-        if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Failed to fetch menu items:', error);
-        }
+        // Log all errors for debugging
+        console.error('Failed to fetch menu items:', error);
         // On error, show empty state
         if (isMounted) {
           setCurrentMenuItems([]);
@@ -158,6 +165,13 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
     };
 
     fetchMenuItems();
+    
+    // Refresh menu items every 30 seconds to catch updates
+    const refreshInterval = setInterval(() => {
+      if (isMounted) {
+        fetchMenuItems();
+      }
+    }, 30000);
     
     // Also listen for menu updates from MenuEditor
     const handleMenuUpdate = (event: CustomEvent) => {
@@ -184,6 +198,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
     return () => {
       isMounted = false;
       abortController.abort();
+      clearInterval(refreshInterval);
       window.removeEventListener('menuItemsUpdated', handleMenuUpdate as EventListener);
     };
   }, []);
