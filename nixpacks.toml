@@ -9,7 +9,7 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "cd backend && node use-postgresql.js && npm run build && npx prisma generate",
+  "cd backend && node use-postgresql.js && npm run build && npx prisma generate --schema=./prisma/schema.prisma",
   "npm run build"
 ]
 

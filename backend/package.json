@@ -7,7 +7,7 @@
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "node use-postgresql.js && tsc",
     "start": "node dist/server.js",
-    "postbuild": "prisma generate",
+    "postbuild": "prisma generate --schema=./prisma/schema.prisma",
     "prisma:generate": "node use-postgresql.js && prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "node use-postgresql.js && prisma migrate deploy",
