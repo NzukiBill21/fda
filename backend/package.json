@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc",
+    "build": "node use-postgresql.js && tsc",
     "start": "node dist/server.js",
     "postbuild": "prisma generate",
     "prisma:generate": "node use-postgresql.js && prisma generate",
@@ -13,7 +13,7 @@
     "prisma:migrate:deploy": "node use-postgresql.js && prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "ts-node src/database/seed.ts",
-    "railway:setup": "prisma generate && prisma migrate deploy"
+    "railway:setup": "node use-postgresql.js && prisma generate && prisma migrate deploy"
   },
   "keywords": ["food-delivery", "ml", "api"],
   "author": "",
