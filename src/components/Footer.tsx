@@ -1,5 +1,6 @@
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter, Heart } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import exampleImage from 'figma:asset/b75535c69f22b26f18a7d3210cd25415150770f2.png';
 
 export function Footer() {
@@ -141,61 +142,50 @@ export function Footer() {
           <div>
             <h3 className="text-xl mb-6 text-white">Quick Links</h3>
             <div className="space-y-3">
-              <motion.a
-                whileHover={{ x: 5 }}
-                href="#menu"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                Menu
-              </motion.a>
-              <motion.a
-                whileHover={{ x: 5 }}
-                href="#about"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                About Us
-              </motion.a>
-              <motion.a
-                whileHover={{ x: 5 }}
-                href="#delivery-info"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('delivery-info')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                Delivery Info
-              </motion.a>
-              <motion.a
-                whileHover={{ x: 5 }}
-                href="#privacy"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('privacy')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                Privacy Policy
-              </motion.a>
-              <motion.a
-                whileHover={{ x: 5 }}
-                href="#terms"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('terms')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
-              >
-                Terms & Conditions
-              </motion.a>
+              <motion.div whileHover={{ x: 5 }}>
+                <Link
+                  to="/#menu"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = '/#menu';
+                  }}
+                  className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Menu
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ x: 5 }}>
+                <Link
+                  to="/about"
+                  className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  About Us
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ x: 5 }}>
+                <Link
+                  to="/delivery-info"
+                  className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Delivery Info
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ x: 5 }}>
+                <Link
+                  to="/privacy"
+                  className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Privacy Policy
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ x: 5 }}>
+                <Link
+                  to="/terms"
+                  className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Terms & Conditions
+                </Link>
+              </motion.div>
             </div>
           </div>
         </div>
