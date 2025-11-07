@@ -505,7 +505,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
             </div>
           </div>
 
-          <TabsContent value={selectedCategory} className="relative z-10 block">
+          <TabsContent value={selectedCategory} className="relative z-10 !flex-none !block">
             {/* Mobile: Vertical layout - image on top, details below - ONLY on small screens */}
             <div className="grid grid-cols-1 md:hidden gap-4 sm:gap-5 gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
               {filteredItems.map((item, index) => (
