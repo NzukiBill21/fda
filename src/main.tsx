@@ -6,6 +6,7 @@ import { AboutUsPage } from "./pages/AboutUsPage";
 import { DeliveryInfoPage } from "./pages/DeliveryInfoPage";
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { TermsConditionsPage } from "./pages/TermsConditionsPage";
+import { CartProvider } from "./contexts/CartContext";
 import "./index.css";
 import "./styles/custom.css";
 import "./styles/mobile-responsive.css";
@@ -18,14 +19,16 @@ initSecurityMonitor({
 });
 
 createRoot(document.getElementById("root")!).render(
-  <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<App />} />
-      <Route path="/about" element={<AboutUsPage />} />
-      <Route path="/delivery-info" element={<DeliveryInfoPage />} />
-      <Route path="/privacy" element={<PrivacyPolicyPage />} />
-      <Route path="/terms" element={<TermsConditionsPage />} />
-    </Routes>
-  </BrowserRouter>
+  <CartProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/about" element={<AboutUsPage />} />
+        <Route path="/delivery-info" element={<DeliveryInfoPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsConditionsPage />} />
+      </Routes>
+    </BrowserRouter>
+  </CartProvider>
 );
   

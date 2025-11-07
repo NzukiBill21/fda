@@ -87,7 +87,9 @@ const sanitizeImageUrl = (url: string | undefined, name: string, category: strin
 export function MenuSection({ onAddToCart }: MenuSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const { items: cartItems } = useCart();
+  
+  // Get cart items from context
+  const { cartItems } = useCart();
   const [showOffers, setShowOffers] = useState(true);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [priceFilter, setPriceFilter] = useState<'any' | 'budget' | 'mid' | 'premium'>('any');
@@ -614,7 +616,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                             🚀 30-45 min
                           </Badge>
                           {(() => {
-                            const cartSubtotal = cartItems.reduce((sum, cartItem) => sum + cartItem.price * cartItem.quantity, 0);
+                            const cartSubtotal = cartItems.reduce((sum, cartItem) => sum + (cartItem.menuItem?.price || cartItem.price || 0) * (cartItem.quantity || 1), 0);
                             return cartSubtotal > 5000 ? (
                               <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
                                 🆓 Free Delivery
