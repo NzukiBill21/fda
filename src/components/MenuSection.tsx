@@ -351,26 +351,26 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8 lg:mb-10"
+            className="text-center mb-6 sm:mb-8 lg:mb-10 -mt-4 sm:-mt-6 md:-mt-8"
           >
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-center mb-3 sm:mb-4">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 shadow-2xl backdrop-blur-xl"
+                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full border-2 shadow-xl backdrop-blur-xl"
                 style={{
                   background: 'rgba(255, 255, 255, 0.98)',
                   borderColor: 'rgba(230, 57, 70, 0.4)',
                   boxShadow: '0 8px 32px rgba(230, 57, 70, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.9)'
                 }}
               >
-                <Flame className="w-5 h-5 text-red-600" />
-                <span className="text-sm font-bold" style={{ color: '#e63946' }}>DELICIOUS MENU</span>
+                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-red-600" />
+                <span className="text-xs sm:text-sm md:text-base font-bold" style={{ color: '#e63946' }}>DELICIOUS MENU</span>
               </motion.div>
-              <button aria-label="Hide offers" onClick={() => setShowOffers(false)} className="ml-3 px-3 py-2 text-xs font-semibold rounded-full bg-white/70 hover:bg-white shadow border border-white/60">✕</button>
+              <button aria-label="Hide offers" onClick={() => setShowOffers(false)} className="ml-2 sm:ml-3 px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold rounded-full bg-white/70 hover:bg-white shadow border border-white/60">✕</button>
             </div>
             <h2 
-              className="text-3xl sm:text-5xl md:text-6xl mb-3 font-black tracking-tight"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2 sm:mb-3 font-black tracking-tight"
               style={{
                 color: '#ffffff',
                 textShadow: '0 4px 8px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3), 2px 2px 4px rgba(220, 38, 38, 0.5)',
@@ -381,7 +381,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
               Our Signature Dishes
             </h2>
             <p 
-              className="text-base sm:text-xl md:text-2xl max-w-2xl mx-auto font-semibold"
+              className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl max-w-2xl mx-auto font-semibold px-4"
               style={{ color: '#ffffff' }}
             >
               From authentic African cuisine to international favorites
