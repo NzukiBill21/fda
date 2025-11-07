@@ -4,12 +4,16 @@ const path = require('path');
 
 const dbUrl = process.env.DATABASE_URL || '';
 
+// Get the correct directory (works from root or backend directory)
+const backendDir = __dirname.includes('backend') ? __dirname : path.join(__dirname, 'backend');
+const prismaDir = path.join(backendDir, 'prisma');
+
 // Check if DATABASE_URL is PostgreSQL
 if (dbUrl.includes('postgresql://') || dbUrl.includes('postgres://')) {
   console.log('✅ PostgreSQL detected in DATABASE_URL');
   
-  const productionSchema = path.join(__dirname, 'prisma', 'schema.production.prisma');
-  const mainSchema = path.join(__dirname, 'prisma', 'schema.prisma');
+  const productionSchema = path.join(prismaDir, 'schema.production.prisma');
+  const mainSchema = path.join(prismaDir, 'schema.prisma');
   
   if (fs.existsSync(productionSchema)) {
     console.log('📝 Copying production schema (PostgreSQL) to main schema...');
