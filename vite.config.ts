@@ -4,6 +4,7 @@
   import path from 'path';
 
   export default defineConfig({
+    base: '/fda/build/', // Base path for XAMPP deployment
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
