@@ -2717,13 +2717,16 @@ app.post('/api/orders/support-request', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+// Listen on 0.0.0.0 to accept connections from Railway and other platforms
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
   console.log('');
   console.log('===========================================');
   console.log(`  Monda Food Delivery Backend Running!`);
+  console.log(`  Host: ${HOST}`);
   console.log(`  Port: ${PORT}`);
-  console.log(`  Health: http://localhost:${PORT}/health`);
-  console.log(`  API: http://localhost:${PORT}/api`);
+  console.log(`  Health: http://${HOST}:${PORT}/health`);
+  console.log(`  API: http://${HOST}:${PORT}/api`);
   console.log('===========================================');
   console.log('  Features:');
   console.log('  - RBAC System (Super Admin, Admin, etc.)');
@@ -2733,6 +2736,9 @@ app.listen(PORT, () => {
   console.log('  - Order System');
   console.log('===========================================');
   console.log('');
+}).on('error', (error: any) => {
+  console.error('❌ Server failed to start:', error);
+  process.exit(1);
 });
 
 export default app;
