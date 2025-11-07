@@ -456,7 +456,12 @@ export default function App() {
 
   // Normal food ordering interface for customers
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-950 via-red-900 to-yellow-900">
+    <div className="min-h-screen bg-gradient-to-br from-red-950 via-red-900 to-yellow-900 relative">
+      {/* Mondas watermark background - consistent with manager dashboard */}
+      <div className="pointer-events-none select-none absolute inset-0 opacity-10" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '600px', backgroundRepeat: 'no-repeat', backgroundPosition: 'right -100px top -80px', filter: 'blur(1px)'}} />
+      <div className="pointer-events-none select-none absolute inset-0 opacity-8" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '500px', backgroundRepeat: 'no-repeat', backgroundPosition: 'left -80px bottom -60px', filter: 'blur(1px)'}} />
+      <div className="pointer-events-none select-none absolute inset-0 opacity-6" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '400px', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', filter: 'blur(2px)'}} />
+      
         <Header 
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
@@ -466,7 +471,7 @@ export default function App() {
           showCart={true}
       />
       
-      <main className="pt-16 sm:pt-20">
+      <main className="pt-16 sm:pt-20 relative z-10">
         <AnimatePresence>
           {showSlideshow && (
             <motion.div
