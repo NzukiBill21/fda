@@ -752,7 +752,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                     </div>
 
                     {/* Content - Bottom section */}
-                    <div className="p-4 lg:p-5 flex flex-col justify-between min-w-0 flex-shrink-0">
+                    <div className="p-4 lg:p-5 flex flex-col justify-between min-w-0 flex-shrink-0 flex-1">
                       <div className="flex-1 min-w-0 mb-3">
                         <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                           <div className="flex items-center gap-1">
