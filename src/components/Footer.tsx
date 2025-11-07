@@ -144,35 +144,55 @@ export function Footer() {
               <motion.a
                 whileHover={{ x: 5 }}
                 href="#menu"
-                className="block text-gray-400 hover:text-white transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 Menu
               </motion.a>
               <motion.a
                 whileHover={{ x: 5 }}
-                href="#"
-                className="block text-gray-400 hover:text-white transition-colors"
+                href="#about"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 About Us
               </motion.a>
               <motion.a
                 whileHover={{ x: 5 }}
-                href="#"
-                className="block text-gray-400 hover:text-white transition-colors"
+                href="#delivery-info"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('delivery-info')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 Delivery Info
               </motion.a>
               <motion.a
                 whileHover={{ x: 5 }}
-                href="#"
-                className="block text-gray-400 hover:text-white transition-colors"
+                href="#privacy"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('privacy')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 Privacy Policy
               </motion.a>
               <motion.a
                 whileHover={{ x: 5 }}
-                href="#"
-                className="block text-gray-400 hover:text-white transition-colors"
+                href="#terms"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('terms')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="block text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 Terms & Conditions
               </motion.a>

@@ -525,6 +525,18 @@ export default function App() {
           </div>
         </motion.section>
 
+        {/* About Us Section */}
+        <AboutUsSection />
+
+        {/* Delivery Info Section */}
+        <DeliveryInfoSection />
+
+        {/* Privacy Policy Section */}
+        <PrivacyPolicySection />
+
+        {/* Terms & Conditions Section */}
+        <TermsConditionsSection />
+
         {/* Order Tracking - shows after order is placed */}
         {orderPlaced && orderDetails && (
           <motion.section
