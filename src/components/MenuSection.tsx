@@ -507,7 +507,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
 
           <TabsContent value={selectedCategory} className="relative z-10">
             {/* Mobile/Tablet: Vertical layout - image on top, details below */}
-            <div className="grid grid-cols-1 lg:hidden gap-4 sm:gap-5 md:gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+            <div className="grid grid-cols-1 md:hidden gap-4 sm:gap-5 gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
@@ -667,7 +667,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
             </div>
 
             {/* Desktop: Grid layout - 3 columns, same vertical layout as mobile */}
-            <div className="hidden lg:grid grid-cols-3 gap-6 lg:gap-8 relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="hidden md:grid grid-cols-3 gap-6 lg:gap-8 relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
