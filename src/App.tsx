@@ -457,10 +457,10 @@ export default function App() {
   // Normal food ordering interface for customers
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-950 via-red-900 to-yellow-900 relative">
-      {/* Mondas watermark background - consistent with manager dashboard */}
-      <div className="pointer-events-none select-none absolute inset-0 opacity-10" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '600px', backgroundRepeat: 'no-repeat', backgroundPosition: 'right -100px top -80px', filter: 'blur(1px)'}} />
-      <div className="pointer-events-none select-none absolute inset-0 opacity-8" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '500px', backgroundRepeat: 'no-repeat', backgroundPosition: 'left -80px bottom -60px', filter: 'blur(1px)'}} />
-      <div className="pointer-events-none select-none absolute inset-0 opacity-6" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '400px', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', filter: 'blur(2px)'}} />
+      {/* Mondas watermark background - consistent with manager dashboard - more visible */}
+      <div className="pointer-events-none select-none absolute inset-0 opacity-20" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '800px', backgroundRepeat: 'no-repeat', backgroundPosition: 'right -50px top -40px', filter: 'blur(0.5px)'}} />
+      <div className="pointer-events-none select-none absolute inset-0 opacity-15" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '700px', backgroundRepeat: 'no-repeat', backgroundPosition: 'left -30px bottom -30px', filter: 'blur(0.5px)'}} />
+      <div className="pointer-events-none select-none absolute inset-0 opacity-12" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '600px', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', filter: 'blur(1px)'}} />
       
         <Header 
         cartCount={cartCount}
