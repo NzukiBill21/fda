@@ -2,17 +2,17 @@
   "name": "Monda Food Delivery",
   "short_name": "Monda",
   "description": "Premium food delivery service with authentic African cuisine",
-  "start_url": "/",
+  "start_url": "/fda/build/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#e63946",
   "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "/fda/build/",
   "lang": "en",
   "categories": ["food", "lifestyle", "shopping"],
   "icons": [
     {
-      "src": "/icon-72x72.png",
+      "src": "/fda/build/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "maskable any"
@@ -85,7 +85,7 @@
       "name": "Order Food",
       "short_name": "Order",
       "description": "Quick access to order food",
-      "url": "/menu",
+      "url": "/fda/build/menu",
       "icons": [
         {
           "src": "/shortcut-order.png",
