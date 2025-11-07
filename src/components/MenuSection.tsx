@@ -505,9 +505,9 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
             </div>
           </div>
 
-          <TabsContent value={selectedCategory} className="relative z-10 !flex-none !block">
-            {/* Mobile: Vertical layout - image on top, details below - ONLY on small screens */}
-            <div className="grid grid-cols-1 md:hidden gap-4 sm:gap-5 gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+          <TabsContent value={selectedCategory} className="relative z-10">
+            {/* Grid layout for all screen sizes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8 relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
@@ -521,11 +521,11 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                 >
                   <motion.div
                     whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
-                    className="rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer"
+                    className="rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer h-full"
                     style={{ width: '100%' }}
                   >
                     {/* Image - Top section */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%' }}>
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%', minHeight: '200px', maxHeight: '200px' }}>
                       <img
                         src={item.image}
                         alt={item.name}
@@ -595,7 +595,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                     </div>
 
                     {/* Content - Bottom section */}
-                    <div className="p-4 sm:p-5 flex flex-col justify-between min-w-0 flex-shrink-0">
+                    <div className="p-4 sm:p-5 flex flex-col justify-between min-w-0 flex-shrink-0 flex-1">
                       <div className="flex-1 min-w-0 mb-3">
                         <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                           <div className="flex items-center gap-1">
@@ -655,163 +655,6 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           aria-label={`Add ${item.name} to cart`}
                         >
                           <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </motion.button>
-                      </div>
-                    </div>
-
-                    {/* Hover Shine Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/0 to-transparent group-hover:via-white/20 transition-all duration-700 pointer-events-none" />
-                  </motion.div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Desktop: Grid layout - 3 columns, same vertical layout as mobile - ONLY on medium+ screens */}
-            <div className="hidden md:grid md:grid-cols-3 gap-6 lg:gap-8 relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full">
-              {filteredItems.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }}
-                  onMouseEnter={() => setHoveredItem(item.id)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className="group relative"
-                >
-                  <motion.div
-                    whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
-                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer h-full"
-                    style={{ width: '100%' }}
-                  >
-                    {/* Image - Top section - consistent height */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%', minHeight: '200px', maxHeight: '200px' }}>
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        style={{ 
-                          objectFit: 'cover', 
-                          objectPosition: 'center',
-                          width: '100%',
-                          height: '100%',
-                          display: 'block'
-                        }}
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          if (target.src.includes('placeholder') || target.src.includes('via.placeholder') || !target.complete) {
-                            const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
-                            if (target.src !== fallbackImage) {
-                              target.src = fallbackImage;
-                            }
-                          }
-                        }}
-                        onLoad={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          if (target.src.includes('placeholder') || target.src.includes('via.placeholder')) {
-                            const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
-                            target.src = fallbackImage;
-                          }
-                        }}
-                      />
-                      
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
-                      {/* Badges */}
-                      <div className="absolute top-3 left-3 right-3 flex justify-between items-start gap-2 flex-wrap">
-                        {item.popular && (
-                          <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 border-0 shadow-lg text-xs px-2 py-1">
-                            ⭐ Popular
-                          </Badge>
-                        )}
-                        <div className="flex gap-2">
-                          {item.spicy && (
-                            <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-0 shadow-lg text-xs px-2 py-1">
-                              <Flame className="w-3 h-3 mr-1" /> Spicy
-                            </Badge>
-                          )}
-                          {item.vegetarian && (
-                            <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-0 shadow-lg text-xs px-2 py-1">
-                              <Leaf className="w-3 h-3 mr-1" /> Veggie
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Heart Icon */}
-                      <motion.button
-                        whileHover={{ scale: 1.2 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="absolute bottom-3 right-3 p-2.5 rounded-full bg-white/90 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                        aria-label="Add to favorites"
-                      >
-                        <Heart className="w-4 h-4 text-red-600" />
-                      </motion.button>
-                    </div>
-
-                    {/* Content - Bottom section */}
-                    <div className="p-4 lg:p-5 flex flex-col justify-between min-w-0 flex-shrink-0 flex-1">
-                      <div className="flex-1 min-w-0 mb-3">
-                        <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-base text-gray-900 font-semibold">
-                              {item.rating}
-                            </span>
-                          </div>
-                          <span className="text-sm text-gray-500">({item.reviews})</span>
-                        </div>
-
-                        <h3 className="text-lg lg:text-xl text-gray-900 mb-2 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
-                        <p className="text-sm lg:text-base text-gray-600 mb-2 line-clamp-2 leading-relaxed">{item.description}</p>
-                        
-                        {/* Estimated Delivery Time Badge - Glovo Style */}
-                        <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
-                            🚀 30-45 min
-                          </Badge>
-                          {(() => {
-                            const cartSubtotal = cartItems.reduce((sum, cartItem) => sum + (cartItem.menuItem?.price || cartItem.price || 0) * (cartItem.quantity || 1), 0);
-                            return cartSubtotal > 5000 ? (
-                              <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
-                                🆓 Free Delivery
-                              </Badge>
-                            ) : null;
-                          })()}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4 flex-shrink-0 pt-3 border-t border-gray-200">
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-xs text-gray-500 uppercase tracking-wide mb-1">Price</span>
-                          <div className="flex items-end gap-1">
-                            <span className="text-base font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
-                            <span
-                              className="text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-none truncate"
-                              style={{ letterSpacing: '-0.02em' }}
-                            >
-                              {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <motion.button
-                          whileHover={{ 
-                            scale: 1.1, 
-                            rotate: 90,
-                            boxShadow: '0 15px 40px rgba(220, 38, 38, 0.4)' 
-                          }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddToCart(item, e);
-                          }}
-                          className="p-3 lg:p-4 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0 z-10"
-                          aria-label={`Add ${item.name} to cart`}
-                        >
-                          <Plus className="w-5 h-5 lg:w-6 lg:h-6" />
                         </motion.button>
                       </div>
                     </div>
