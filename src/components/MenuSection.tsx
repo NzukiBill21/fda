@@ -337,7 +337,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
   };
 
   return (
-    <section id="menu" className="py-8 sm:py-12 lg:py-16 bg-gradient-to-br from-red-950/50 via-transparent to-yellow-900/50 relative overflow-hidden">
+    <section id="menu" className="py-8 sm:py-12 lg:py-16 bg-gradient-to-br from-red-950/80 via-red-900/60 to-yellow-900/80 relative overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-20 left-10 w-96 h-96 bg-red-600 rounded-full blur-3xl animate-pulse" />
