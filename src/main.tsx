@@ -62,7 +62,9 @@ if (!rootElement) {
         </BrowserRouter>
       </CartProvider>
     );
-    console.log('React app mounted successfully!');
+    console.log('✅ React app mounted successfully!');
+    console.log('Base path:', basePath);
+    console.log('API URL:', getSecurityReportUrl());
   } catch (error) {
     console.error('Failed to mount React app:', error);
     rootElement.innerHTML = `<div style="padding: 20px; color: red;"><h1>Error Loading App</h1><p>${error}</p><p>Check console for details.</p></div>`;
