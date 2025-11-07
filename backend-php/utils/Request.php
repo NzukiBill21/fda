@@ -27,7 +27,19 @@ class Request {
     public static function getPath() {
         $path = $_SERVER['REQUEST_URI'] ?? '/';
         $path = parse_url($path, PHP_URL_PATH);
-        return rtrim($path, '/');
+        
+        // Remove base path if running in subdirectory
+        $basePath = '/fda/backend-php';
+        if (strpos($path, $basePath) === 0) {
+            $path = substr($path, strlen($basePath));
+        }
+        
+        // Ensure path starts with /
+        if (empty($path) || $path[0] !== '/') {
+            $path = '/' . $path;
+        }
+        
+        return rtrim($path, '/') ?: '/';
     }
     
     public static function getParam($name) {
