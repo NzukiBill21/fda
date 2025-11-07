@@ -507,7 +507,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
 
           <TabsContent value={selectedCategory} className="relative z-10 !flex-none">
             {/* Mobile: Vertical layout - image on top, details below - ONLY on small screens */}
-            <div className="grid grid-cols-1 lg:hidden gap-4 sm:gap-5 gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10 w-full">
+            <div className="grid grid-cols-1 lg:hidden gap-4 sm:gap-5 gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
