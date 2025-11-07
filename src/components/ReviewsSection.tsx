@@ -20,69 +20,14 @@ const reviews: Review[] = [
     rating: 5,
     comment:
       'Best burgers in Westlands! The delivery was super fast and the food arrived hot. The packaging was eco-friendly too. Will definitely order again! 🍔',
-    date: '2 days ago',
+    date: 'Today',
     initials: 'SM',
     helpful: 24,
-  },
-  {
-    id: '2',
-    name: 'David Ochieng',
-    rating: 5,
-    comment:
-      'The chicken wings are absolutely amazing! Perfect spice level and the portions are very generous. The M-Pesa payment was seamless. Great value for money. Highly recommend!',
-    date: '1 week ago',
-    initials: 'DO',
-    helpful: 18,
-  },
-  {
-    id: '3',
-    name: 'Jane Kamau',
-    rating: 4,
-    comment:
-      'Really enjoyed the loaded nachos and the delivery tracking feature is fantastic. Love how professional everything is. Only wish they had more vegetarian options on the menu.',
-    date: '2 weeks ago',
-    initials: 'JK',
-    helpful: 15,
-  },
-  {
-    id: '4',
-    name: 'Michael Njoroge',
-    rating: 5,
-    comment:
-      'Excellent service from start to finish! The GPS tracker kept me updated throughout. Food quality is absolutely top-notch and packaging is eco-friendly. Best food delivery experience! ⭐',
-    date: '3 weeks ago',
-    initials: 'MN',
-    helpful: 32,
-  },
-  {
-    id: '5',
-    name: 'Grace Wanjiru',
-    rating: 5,
-    comment:
-      'The premium steak combo is worth every shilling! Cooked to perfection, arrived hot, and tasted incredible. Customer service is exceptional. This is now my go-to spot! 🥩',
-    date: '1 month ago',
-    initials: 'GW',
-    helpful: 28,
-  },
-  {
-    id: '6',
-    name: 'Peter Kimani',
-    rating: 5,
-    comment:
-      'Outstanding! The BBQ ribs were so tender they fell off the bone. Sauce was perfectly balanced. Delivery was prompt and the driver was very professional. Five stars all the way!',
-    date: '1 month ago',
-    initials: 'PK',
-    helpful: 21,
   },
 ];
 
 const avatarColors = [
   'from-red-500 to-orange-500',
-  'from-blue-500 to-cyan-500',
-  'from-green-500 to-emerald-500',
-  'from-purple-500 to-pink-500',
-  'from-yellow-500 to-orange-500',
-  'from-indigo-500 to-purple-500',
 ];
 
 interface ReviewsSectionProps { onWriteReview?: () => void }
@@ -147,7 +92,7 @@ export function ReviewsSection({ onWriteReview }: ReviewsSectionProps) {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto">
+        <div className="flex justify-center max-w-2xl mx-auto">
           {reviews.map((review, index) => (
             <motion.div
               key={review.id}
@@ -155,6 +100,7 @@ export function ReviewsSection({ onWriteReview }: ReviewsSectionProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.08, duration: 0.5 }}
+              className="w-full"
             >
               <Card className="p-6 rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all h-full flex flex-col group">
                 <div className="flex items-start gap-4 mb-4">
