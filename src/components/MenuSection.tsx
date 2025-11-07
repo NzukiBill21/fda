@@ -108,7 +108,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
     
     const fetchMenuItems = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/menu', {
+        const res = await fetch('/fda/backend-php/api/menu', {
           signal: abortController.signal,
           cache: 'no-cache',
           headers: {
