@@ -28,6 +28,7 @@ model User {
   loginAttempts Int       @default(0)
   lockedUntil   DateTime?
   lastLogin     DateTime?
+  mustChangePassword Boolean @default(false) // Force password change on first login
 
   // Relationships
   roles              UserRole[]
