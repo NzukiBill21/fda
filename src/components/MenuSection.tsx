@@ -518,10 +518,10 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                   <motion.div
                     whileHover={{ y: -8, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.25)' }}
                     className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col"
-                    style={{ aspectRatio: '1 / 1', width: '100%', maxHeight: '100%' }}
+                    style={{ aspectRatio: '1 / 1', width: '100%' }}
                   >
-                    {/* Image - Fixed height for consistency */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ aspectRatio: '1 / 1', width: '100%' }}>
+                    {/* Image - Takes up about 60% of the square card */}
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '60%', width: '100%' }}>
                       <img
                         src={item.image}
                         alt={item.name}
@@ -589,20 +589,20 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                       </motion.button>
                     </div>
 
-                    {/* Content - Flexible height to fit in square card */}
-                    <div className="p-2.5 sm:p-3 lg:p-4 flex-1 flex flex-col overflow-hidden min-h-0">
+                    {/* Content - Takes up remaining 40% of the square card */}
+                    <div className="p-3 sm:p-3.5 lg:p-4 flex-1 flex flex-col overflow-hidden" style={{ height: '40%', minHeight: 0 }}>
                       <div className="flex items-center gap-1 sm:gap-1.5 mb-1.5 flex-shrink-0">
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 sm:gap-1">
                           <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs text-gray-900 font-semibold">
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">
                             {item.rating}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">({item.reviews})</span>
+                        <span className="text-xs sm:text-sm text-gray-500">({item.reviews})</span>
                       </div>
 
-                      <h3 className="text-xs sm:text-sm lg:text-base text-gray-900 mb-1 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
-                      <p className="text-xs text-gray-600 mb-2 line-clamp-2 flex-1 overflow-hidden min-h-0">{item.description}</p>
+                      <h3 className="text-sm sm:text-base lg:text-lg text-gray-900 mb-1 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2 flex-1 overflow-hidden min-h-0">{item.description}</p>
 
                       <div className="flex items-center justify-between mt-auto gap-2 flex-shrink-0">
                         <div className="flex flex-col flex-1 min-w-0">
@@ -610,7 +610,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           <div className="flex items-end gap-1">
                             <span className="text-xs sm:text-sm font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
                             <span
-                              className="text-lg sm:text-xl lg:text-2xl font-black text-gray-900 tracking-tight leading-none truncate"
+                              className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-none truncate"
                               style={{ letterSpacing: '-0.02em' }}
                             >
                               {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -626,9 +626,9 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           }}
                           whileTap={{ scale: 0.9 }}
                           onClick={(e) => handleAddToCart(item, e)}
-                          className="p-2 sm:p-2.5 lg:p-3 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0"
+                          className="p-2.5 sm:p-3 lg:p-3.5 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0"
                         >
-                          <Plus className="w-4 h-4 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
+                          <Plus className="w-4 h-4 sm:w-5 sm:h-5 lg:w-5 lg:h-5" />
                         </motion.button>
                       </div>
                     </div>
