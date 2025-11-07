@@ -32,12 +32,7 @@ function updateFile(filePath) {
       }
     });
     
-    // Fix asset paths: /assets/ -> /fda/build/assets/ (but NOT if already /fda/build/assets/)
-    // This must be done after other replacements to avoid doubling
-    if (content.includes('/assets/') && !content.includes('/fda/build/assets/')) {
-      content = content.replace(/\/assets\//g, '/fda/build/assets/');
-      updated = true;
-    }
+    // Note: Asset paths are handled by Vite's base config, so we don't need to replace them here
 
     if (updated) {
       fs.writeFileSync(filePath, content, 'utf8');
