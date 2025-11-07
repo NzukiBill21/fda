@@ -31,22 +31,41 @@ const getSecurityReportUrl = (): string => {
   return 'http://localhost:5000/api/security/log';
 };
 
-initSecurityMonitor({
-  reportUrl: getSecurityReportUrl(),
-  showToast: true,
-});
+// Initialize security monitor with error handling
+try {
+  initSecurityMonitor({
+    reportUrl: getSecurityReportUrl(),
+    showToast: false, // Disable toasts during init
+  });
+} catch (error) {
+  console.warn('Security monitor init failed:', error);
+}
 
-createRoot(document.getElementById("root")!).render(
-  <CartProvider>
-    <BrowserRouter basename={basePath}>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/about" element={<AboutUsPage />} />
-        <Route path="/delivery-info" element={<DeliveryInfoPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsConditionsPage />} />
-      </Routes>
-    </BrowserRouter>
-  </CartProvider>
-);
+// Mount React app with error handling
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  console.error('Root element not found!');
+  document.body.innerHTML = '<div style="padding: 20px; color: red;"><h1>Error: Root element not found</h1><p>Please check if index.html has &lt;div id="root"&gt;&lt;/div&gt;</p></div>';
+} else {
+  try {
+    const root = createRoot(rootElement);
+    root.render(
+      <CartProvider>
+        <BrowserRouter basename={basePath}>
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/delivery-info" element={<DeliveryInfoPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsConditionsPage />} />
+          </Routes>
+        </BrowserRouter>
+      </CartProvider>
+    );
+    console.log('React app mounted successfully!');
+  } catch (error) {
+    console.error('Failed to mount React app:', error);
+    rootElement.innerHTML = `<div style="padding: 20px; color: red;"><h1>Error Loading App</h1><p>${error}</p><p>Check console for details.</p></div>`;
+  }
+}
   
