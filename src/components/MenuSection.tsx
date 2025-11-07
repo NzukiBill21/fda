@@ -504,7 +504,8 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
           </div>
 
           <TabsContent value={selectedCategory}>
-            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 max-w-4xl mx-auto px-4 sm:px-6">
+            {/* Mobile/Tablet: Horizontal single-column layout */}
+            <div className="grid grid-cols-1 lg:hidden gap-4 sm:gap-5 md:gap-6 max-w-4xl mx-auto px-4 sm:px-6">
               {filteredItems.map((item, index) => (
                 <motion.div
                   key={item.id}
@@ -518,7 +519,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                 >
                   <motion.div
                     whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
-                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-row cursor-pointer"
+                    className="rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-row cursor-pointer"
                     style={{ width: '100%', minHeight: '180px' }}
                   >
                     {/* Image - Left side, fixed width */}
@@ -592,7 +593,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                     </div>
 
                     {/* Content - Right side, flexible width */}
-                    <div className="p-4 sm:p-5 lg:p-6 flex-1 flex flex-col justify-between min-w-0">
+                    <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-w-0">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                           <div className="flex items-center gap-1">
@@ -604,7 +605,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           <span className="text-sm text-gray-500">({item.reviews})</span>
                         </div>
 
-                        <h3 className="text-lg sm:text-xl lg:text-2xl text-gray-900 mb-2 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
+                        <h3 className="text-lg sm:text-xl text-gray-900 mb-2 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
                         <p className="text-sm sm:text-base text-gray-600 mb-2 line-clamp-2 flex-1 overflow-hidden min-h-0 leading-relaxed">{item.description}</p>
                         
                         {/* Estimated Delivery Time Badge - Glovo Style */}
@@ -629,7 +630,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           <div className="flex items-end gap-1">
                             <span className="text-base font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
                             <span
-                              className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight leading-none truncate"
+                              className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none truncate"
                               style={{ letterSpacing: '-0.02em' }}
                             >
                               {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -652,6 +653,145 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                           aria-label={`Add ${item.name} to cart`}
                         >
                           <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    {/* Hover Shine Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/0 to-transparent group-hover:via-white/20 transition-all duration-700 pointer-events-none" />
+                  </motion.div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Desktop: Grid layout with square cards */}
+            <div className="hidden lg:grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 lg:gap-8">
+              {filteredItems.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                  onMouseEnter={() => setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  className="group relative"
+                >
+                  <motion.div
+                    whileHover={{ y: -8, boxShadow: '0 30px 60px rgba(220, 38, 38, 0.25)' }}
+                    className="rounded-2xl lg:rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer"
+                    style={{ aspectRatio: '1 / 1', width: '100%' }}
+                  >
+                    {/* Image - Takes up about 55% of the square card */}
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '55%', width: '100%' }}>
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        style={{ 
+                          objectFit: 'cover', 
+                          objectPosition: 'center',
+                          width: '100%',
+                          height: '100%',
+                          display: 'block'
+                        }}
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('placeholder') || target.src.includes('via.placeholder') || !target.complete) {
+                            const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
+                            if (target.src !== fallbackImage) {
+                              target.src = fallbackImage;
+                            }
+                          }
+                        }}
+                        onLoad={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src.includes('placeholder') || target.src.includes('via.placeholder')) {
+                            const fallbackImage = getUnsplashImageForMenuItem(item.name, item.category);
+                            target.src = fallbackImage;
+                          }
+                        }}
+                      />
+                      
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Badges */}
+                      <div className="absolute top-4 left-4 right-4 flex justify-between items-start gap-2 flex-wrap">
+                        {item.popular && (
+                          <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 border-0 shadow-lg">
+                            ⭐ Popular
+                          </Badge>
+                        )}
+                        <div className="flex gap-2">
+                          {item.spicy && (
+                            <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-0 shadow-lg">
+                              <Flame className="w-3 h-3 mr-1" /> Spicy
+                            </Badge>
+                          )}
+                          {item.vegetarian && (
+                            <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-0 shadow-lg">
+                              <Leaf className="w-3 h-3 mr-1" /> Veggie
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Heart Icon */}
+                      <motion.button
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="absolute bottom-4 right-4 p-3 rounded-full bg-white/90 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Heart className="w-5 h-5 text-red-600" />
+                      </motion.button>
+                    </div>
+
+                    {/* Content - Takes up remaining 45% of the square card */}
+                    <div className="p-4 lg:p-5 flex-1 flex flex-col overflow-hidden" style={{ height: '45%', minHeight: 0 }}>
+                      <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm text-gray-900 font-semibold">
+                            {item.rating}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">({item.reviews})</span>
+                      </div>
+
+                      <h3 className="text-base lg:text-lg text-gray-900 mb-1.5 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2 flex-1 overflow-hidden min-h-0 leading-relaxed">{item.description}</p>
+
+                      <div className="flex items-center justify-between mt-auto gap-3 flex-shrink-0">
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Price</span>
+                          <div className="flex items-end gap-1">
+                            <span className="text-sm font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
+                            <span
+                              className="text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-none truncate"
+                              style={{ letterSpacing: '-0.02em' }}
+                            >
+                              {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <motion.button
+                          whileHover={{ 
+                            scale: 1.15, 
+                            rotate: 90,
+                            boxShadow: '0 15px 40px rgba(220, 38, 38, 0.4)' 
+                          }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(item, e);
+                          }}
+                          className="p-3 lg:p-3.5 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0 z-10"
+                          aria-label={`Add ${item.name} to cart`}
+                        >
+                          <Plus className="w-5 h-5 lg:w-6 lg:h-6" />
                         </motion.button>
                       </div>
                     </div>
