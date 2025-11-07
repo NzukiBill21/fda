@@ -20,6 +20,8 @@ function updateFile(filePath) {
       { from: /http:\/\/localhost:5000\//g, to: apiPath + '/' },
       { from: /'http:\/\/localhost:5000'/g, to: `'${apiPath}'` },
       { from: /"http:\/\/localhost:5000"/g, to: `"${apiPath}"` },
+      // Fix asset paths: /assets/ -> /fda/build/assets/
+      { from: /\/assets\//g, to: '/fda/build/assets/' },
     ];
 
     patterns.forEach(pattern => {
