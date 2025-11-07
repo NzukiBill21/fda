@@ -522,10 +522,10 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                   <motion.div
                     whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
                     className="rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer"
-                    style={{ width: '100%', aspectRatio: '4 / 3' }}
+                    style={{ width: '100%' }}
                   >
                     {/* Image - Top section */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '60%', width: '100%' }}>
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '200px', width: '100%' }}>
                       <img
                         src={item.image}
                         alt={item.name}
@@ -595,8 +595,8 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                     </div>
 
                     {/* Content - Bottom section */}
-                    <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-w-0" style={{ height: '40%' }}>
-                      <div className="flex-1 min-w-0">
+                    <div className="p-4 sm:p-5 flex flex-col justify-between min-w-0 flex-shrink-0">
+                      <div className="flex-1 min-w-0 mb-3">
                         <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                           <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -608,10 +608,10 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                         </div>
 
                         <h3 className="text-lg sm:text-xl text-gray-900 mb-2 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
-                        <p className="text-sm sm:text-base text-gray-600 mb-2 line-clamp-2 flex-1 overflow-hidden min-h-0 leading-relaxed">{item.description}</p>
+                        <p className="text-sm sm:text-base text-gray-600 mb-2 line-clamp-2 leading-relaxed">{item.description}</p>
                         
                         {/* Estimated Delivery Time Badge - Glovo Style */}
-                        <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 mb-3 flex-shrink-0">
                           <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
                             🚀 30-45 min
                           </Badge>
@@ -626,13 +626,13 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-4 flex-shrink-0 pt-2 border-t border-gray-200">
+                      <div className="flex items-center justify-between gap-4 flex-shrink-0 pt-3 border-t border-gray-200">
                         <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-xs text-gray-500 uppercase tracking-wide mb-1">Price</span>
                           <div className="flex items-end gap-1">
                             <span className="text-base font-semibold text-gray-600 leading-none flex-shrink-0">KES</span>
                             <span
-                              className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none truncate"
+                              className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none truncate"
                               style={{ letterSpacing: '-0.02em' }}
                             >
                               {item.price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -651,10 +651,10 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                             e.stopPropagation();
                             handleAddToCart(item, e);
                           }}
-                          className="p-4 sm:p-5 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0 z-10"
+                          className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-yellow-500 text-white shadow-xl hover:shadow-2xl transition-all duration-300 flex-shrink-0 z-10"
                           aria-label={`Add ${item.name} to cart`}
                         >
-                          <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
+                          <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                         </motion.button>
                       </div>
                     </div>
