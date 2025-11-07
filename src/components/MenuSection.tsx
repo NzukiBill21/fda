@@ -604,7 +604,22 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                         </div>
 
                         <h3 className="text-lg sm:text-xl lg:text-2xl text-gray-900 mb-2 font-bold line-clamp-1 flex-shrink-0">{item.name}</h3>
-                        <p className="text-sm sm:text-base text-gray-600 mb-4 line-clamp-2 flex-1 overflow-hidden min-h-0 leading-relaxed">{item.description}</p>
+                        <p className="text-sm sm:text-base text-gray-600 mb-2 line-clamp-2 flex-1 overflow-hidden min-h-0 leading-relaxed">{item.description}</p>
+                        
+                        {/* Estimated Delivery Time Badge - Glovo Style */}
+                        <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
+                            🚀 30-45 min
+                          </Badge>
+                          {(() => {
+                            const cartSubtotal = cartItems.reduce((sum, cartItem) => sum + cartItem.price * cartItem.quantity, 0);
+                            return cartSubtotal > 5000 ? (
+                              <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-sm text-xs px-2 py-0.5 font-semibold">
+                                🆓 Free Delivery
+                              </Badge>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between gap-4 flex-shrink-0 pt-2 border-t border-gray-200">

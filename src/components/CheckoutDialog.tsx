@@ -261,6 +261,30 @@ export function CheckoutDialog({ isOpen, onClose, total, onConfirmOrder }: Check
                       </div>
                     </div>
 
+                    {/* Promo Code Input - Glovo Style */}
+                    <div className="space-y-2">
+                      <Label htmlFor="promoCode" className="text-base flex items-center gap-2">
+                        <span className="text-lg">🎁</span>
+                        Promo Code (Optional)
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="promoCode"
+                          placeholder="Enter promo code"
+                          className="rounded-xl border-2 border-gray-300 focus:border-red-500 py-6 text-base flex-1"
+                        />
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-6 py-6 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                        >
+                          Apply
+                        </motion.button>
+                      </div>
+                      <p className="text-xs text-gray-500 pl-1">Save on your order with a valid promo code</p>
+                    </div>
+
                     <div className="space-y-4">
                       <Label className="text-lg">Choose Payment Method</Label>
                       <RadioGroup
