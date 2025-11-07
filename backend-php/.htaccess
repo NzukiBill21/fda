@@ -1,5 +1,5 @@
 RewriteEngine On
-RewriteBase /
+RewriteBase /fda/backend-php/
 
 # Handle CORS preflight
 RewriteCond %{REQUEST_METHOD} OPTIONS
