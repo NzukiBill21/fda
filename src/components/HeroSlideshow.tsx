@@ -167,26 +167,17 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
   };
 
   return (
-    <div className="relative min-h-[100vh] sm:min-h-[85vh] lg:h-[90vh] w-full overflow-hidden bg-gradient-to-br from-red-950 via-red-900 to-yellow-900 hero-slideshow-mobile">
-      {/* Dismiss Button - More prominent on mobile */}
+    <div className="relative h-[75vh] w-full overflow-hidden bg-gradient-to-br from-red-950 via-red-900 to-yellow-900 hero-slideshow-mobile">
+      {/* Dismiss Button - Smaller and more subtle */}
       <motion.button
         whileHover={{ scale: 1.1, rotate: 90 }}
         whileTap={{ scale: 0.9 }}
         onClick={onDismiss}
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-3 sm:p-3 rounded-full bg-red-600/80 backdrop-blur-md border-2 border-white/50 text-white hover:bg-red-700/80 transition-all shadow-2xl mobile-dismiss-btn"
+        className="absolute top-3 right-3 sm:top-4 sm:right-4 z-50 p-2 sm:p-2.5 rounded-full bg-red-600/70 backdrop-blur-md border border-white/40 text-white hover:bg-red-700/80 transition-all shadow-lg"
+        aria-label="Dismiss offer"
       >
-        <X className="w-6 h-6 sm:w-6 sm:h-6" />
+        <X className="w-4 h-4 sm:w-5 sm:h-5" />
       </motion.button>
-      
-      {/* Mobile-specific dismiss hint */}
-      <div className="absolute top-4 left-4 z-50 sm:hidden">
-        <div className="px-3 py-2 rounded-lg bg-black/30 backdrop-blur-md border border-white/30 text-white text-xs">
-          <span className="flex items-center gap-1">
-            <span>👆</span>
-            Tap X to dismiss
-          </span>
-        </div>
-      </div>
 
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
@@ -228,8 +219,8 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
           }}
           className="absolute inset-0"
         >
-          <div className="container mx-auto px-4 sm:px-6 h-full flex items-center py-8 sm:py-8 mobile-content-spacing">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-8 lg:gap-12 items-center w-full">
+          <div className="container mx-auto px-3 sm:px-4 md:px-6 h-full flex items-center py-4 sm:py-6 md:py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 lg:gap-12 items-center w-full">
               {/* Content */}
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
@@ -241,43 +232,43 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.3, type: 'spring' }}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-5 sm:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-2 sm:mb-4 shadow-2xl"
+                  className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-4 sm:py-1.5 md:px-5 md:py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-2 sm:mb-3 md:mb-4 shadow-lg"
                 >
-                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
-                  <span className="text-xs sm:text-sm tracking-wide font-semibold">FRESH DAILY SPECIALS</span>
+                  <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 text-yellow-300" />
+                  <span className="text-[10px] sm:text-xs md:text-sm tracking-wide font-semibold">FRESH DAILY SPECIALS</span>
                 </motion.div>
 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl mb-3 sm:mb-4 text-white drop-shadow-2xl leading-tight tracking-tight font-extrabold">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2 sm:mb-3 md:mb-4 text-white drop-shadow-2xl leading-tight tracking-tight font-extrabold">
                   {slides[currentSlide].title}
                 </h1>
 
-                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl text-yellow-100 mb-4 sm:mb-6 drop-shadow-lg leading-relaxed">
+                <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-yellow-100 mb-3 sm:mb-4 md:mb-6 drop-shadow-lg leading-relaxed">
                   {slides[currentSlide].description}
                 </p>
 
-                <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="px-3 py-1.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl bg-white/20 backdrop-blur-xl border-2 border-white/30 shadow-2xl">
-                    <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight drop-shadow-xl font-extrabold">
+                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6">
+                  <div className="px-2.5 py-1 sm:px-4 sm:py-1.5 md:px-5 md:py-2 lg:px-6 lg:py-3 rounded-lg sm:rounded-xl bg-white/20 backdrop-blur-xl border-2 border-white/30 shadow-xl">
+                    <span className="text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl tracking-tight drop-shadow-xl font-extrabold">
                       {slides[currentSlide].price}
                     </span>
                   </div>
                   <motion.div
                     animate={{ rotate: [0, 10, -10, 0] }}
                     transition={{ repeat: Infinity, duration: 2 }}
-                    className="text-3xl sm:text-5xl md:text-6xl"
+                    className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
                   >
                     {slides[currentSlide].emoji}
                   </motion.div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4">
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleOrderNow}
-                    className="w-full sm:w-auto px-6 py-4 sm:px-10 sm:py-5 rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-red-900 shadow-2xl hover:shadow-yellow-500/50 transition-all duration-300 text-lg sm:text-xl flex items-center justify-center gap-3 font-bold mobile-full-width-btn"
+                    className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-red-900 shadow-xl hover:shadow-yellow-500/50 transition-all duration-300 text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 font-bold"
                   >
-                    <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>🛒 Order This Deal</span>
                   </motion.button>
                   
@@ -285,7 +276,7 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full sm:w-auto px-6 py-4 sm:px-10 sm:py-5 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30 text-white shadow-2xl hover:bg-white/30 transition-all duration-300 text-lg sm:text-xl font-bold mobile-full-width-btn"
+                    className="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30 text-white shadow-xl hover:bg-white/30 transition-all duration-300 text-sm sm:text-base md:text-lg font-bold"
                   >
                     📋 Browse Menu
                   </motion.button>
@@ -297,9 +288,9 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
-                className="relative order-1 lg:order-2 h-[40vh] sm:h-[45vh] lg:h-auto mobile-image-container"
+                className="relative order-1 lg:order-2 h-[30vh] sm:h-[35vh] md:h-[40vh] lg:h-[50vh] xl:h-auto"
               >
-                <div className="relative w-full h-full rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl border-2 sm:border-4 lg:border-8 border-white/10">
+                <div className="relative w-full h-full rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl overflow-hidden shadow-xl border-2 sm:border-3 md:border-4 lg:border-8 border-white/10">
                   <img
                     src={slides[currentSlide].image}
                     alt={slides[currentSlide].title}
@@ -316,13 +307,13 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700" />
                 </div>
 
-                {/* Floating Elements */}
+                {/* Floating Elements - Reduced size */}
                 <motion.div
-                  animate={{ y: [0, -20, 0] }}
+                  animate={{ y: [0, -10, 0] }}
                   transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-                  className="absolute -top-8 -right-8 px-6 py-3 rounded-2xl bg-red-600/90 backdrop-blur-md text-white shadow-2xl border border-white/20"
+                  className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 md:-top-6 md:-right-6 px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-lg sm:rounded-xl bg-red-600/90 backdrop-blur-md text-white shadow-lg border border-white/20"
                 >
-                  <div className="text-sm">🔥 HOT DEAL</div>
+                  <div className="text-[10px] sm:text-xs md:text-sm font-semibold">🔥 HOT DEAL</div>
                 </motion.div>
               </motion.div>
             </div>
@@ -330,21 +321,22 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Buttons */}
-      <div className="absolute bottom-8 left-0 right-0 z-20">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-4">
+      {/* Navigation Buttons - Smaller and more compact */}
+      <div className="absolute bottom-3 sm:bottom-4 md:bottom-6 left-0 right-0 z-20">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4">
             <motion.button
               whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
               whileTap={{ scale: 0.9 }}
               onClick={() => paginate(-1)}
-              className="p-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-all shadow-xl"
+              className="p-2 sm:p-3 md:p-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-all shadow-lg"
+              aria-label="Previous slide"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
             </motion.button>
 
             {/* Dots */}
-            <div className="flex gap-3 px-6 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl">
+            <div className="flex gap-2 sm:gap-2.5 md:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg">
               {slides.map((_, index) => (
                 <button
                   key={index}
@@ -354,9 +346,10 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
                   }}
                   className={`transition-all duration-300 ${
                     index === currentSlide
-                      ? 'w-12 h-3 bg-yellow-400 rounded-full'
-                      : 'w-3 h-3 bg-white/40 rounded-full hover:bg-white/60'
+                      ? 'w-8 sm:w-10 md:w-12 h-2 sm:h-2.5 md:h-3 bg-yellow-400 rounded-full'
+                      : 'w-2 sm:w-2.5 md:w-3 h-2 sm:h-2.5 md:h-3 bg-white/40 rounded-full hover:bg-white/60'
                   }`}
+                  aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
             </div>
@@ -365,9 +358,10 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
               whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
               whileTap={{ scale: 0.9 }}
               onClick={() => paginate(1)}
-              className="p-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-all shadow-xl"
+              className="p-2 sm:p-3 md:p-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-all shadow-lg"
+              aria-label="Next slide"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
             </motion.button>
           </div>
         </div>
