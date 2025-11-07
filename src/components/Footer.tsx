@@ -35,7 +35,7 @@ export function Footer() {
               <motion.a
                 whileHover={{ scale: 1.1, backgroundColor: 'rgba(220, 38, 38, 0.2)' }}
                 whileTap={{ scale: 0.95 }}
-                href="https://www.facebook.com/mondaske"
+                href="https://www.facebook.com/profile.php?id=61580271553112"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all backdrop-blur-sm border border-white/10"
