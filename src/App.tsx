@@ -7,6 +7,7 @@ import { CheckoutDialog, OrderDetails } from './components/CheckoutDialog';
 import { ReviewsSection } from './components/ReviewsSection';
 import { DeliveryTracker } from './components/DeliveryTracker';
 import { ReviewDialog } from './components/ReviewDialog';
+import { AboutUsSection, DeliveryInfoSection, PrivacyPolicySection, TermsConditionsSection } from './components/InfoSection';
 import { DeliveryConfirmationDialog } from './components/DeliveryConfirmationDialog';
 import { AIRecommendations } from './components/AIRecommendations';
 import { Footer } from './components/Footer';
