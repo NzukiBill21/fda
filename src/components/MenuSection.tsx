@@ -506,7 +506,7 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
           </div>
 
           <TabsContent value={selectedCategory} className="relative z-10">
-            {/* Mobile/Tablet: Horizontal single-column layout */}
+            {/* Mobile/Tablet: Vertical layout - image on top, details below */}
             <div className="grid grid-cols-1 lg:hidden gap-4 sm:gap-5 md:gap-6 max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
               {filteredItems.map((item, index) => (
                 <motion.div
@@ -521,11 +521,11 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                 >
                   <motion.div
                     whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(220, 38, 38, 0.2)' }}
-                    className="rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-row cursor-pointer"
-                    style={{ width: '100%', minHeight: '180px' }}
+                    className="rounded-2xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl hover:shadow-2xl transition-all overflow-hidden flex flex-col cursor-pointer"
+                    style={{ width: '100%', aspectRatio: '4 / 3' }}
                   >
-                    {/* Image - Left side, fixed width */}
-                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ width: '180px', height: '100%', minHeight: '180px' }}>
+                    {/* Image - Top section */}
+                    <div className="relative flex-shrink-0 overflow-hidden bg-gray-100" style={{ height: '60%', width: '100%' }}>
                       <img
                         src={item.image}
                         alt={item.name}
@@ -594,8 +594,8 @@ export function MenuSection({ onAddToCart }: MenuSectionProps) {
                       </motion.button>
                     </div>
 
-                    {/* Content - Right side, flexible width */}
-                    <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-w-0">
+                    {/* Content - Bottom section */}
+                    <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-w-0" style={{ height: '40%' }}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                           <div className="flex items-center gap-1">
