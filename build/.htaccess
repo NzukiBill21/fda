@@ -1,0 +1,15 @@
+RewriteEngine On
+RewriteBase /fda/build/
+
+# Don't rewrite actual files or directories
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Don't rewrite assets
+RewriteCond %{REQUEST_URI} \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$ [NC]
+RewriteRule ^ - [L]
+
+# Rewrite everything else to index.html for client-side routing
+RewriteRule ^(.*)$ index.html [QSA,L]
+

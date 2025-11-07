@@ -21,7 +21,8 @@ function updateFile(filePath) {
       { from: /'http:\/\/localhost:5000'/g, to: `'${apiPath}'` },
       { from: /"http:\/\/localhost:5000"/g, to: `"${apiPath}"` },
       // Fix asset paths: /assets/ -> /fda/build/assets/ (but NOT if already /fda/build/assets/)
-      { from: /(?<!\/fda\/build)\/assets\//g, to: '/fda/build/assets/' },
+      // Use a function to check if the path is already correct
+      // We'll handle this separately to avoid lookbehind issues
     ];
 
     patterns.forEach(pattern => {
@@ -30,6 +31,13 @@ function updateFile(filePath) {
         updated = true;
       }
     });
+    
+    // Fix asset paths: /assets/ -> /fda/build/assets/ (but NOT if already /fda/build/assets/)
+    // This must be done after other replacements to avoid doubling
+    if (content.includes('/assets/') && !content.includes('/fda/build/assets/')) {
+      content = content.replace(/\/assets\//g, '/fda/build/assets/');
+      updated = true;
+    }
 
     if (updated) {
       fs.writeFileSync(filePath, content, 'utf8');
