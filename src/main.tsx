@@ -13,14 +13,32 @@ import "./styles/mobile-responsive.css";
 import "./styles/mobile-slideshow.css";
 import { initSecurityMonitor } from "./security/monitor";
 
+// Detect base path for XAMPP
+const getBasePath = (): string => {
+  if (window.location.pathname.includes('/fda/build/')) {
+    return '/fda/build';
+  }
+  return '';
+};
+
+const basePath = getBasePath();
+
+// Get API URL for security monitor
+const getSecurityReportUrl = (): string => {
+  if (window.location.pathname.includes('/fda/')) {
+    return '/fda/backend-php/api/security/log';
+  }
+  return 'http://localhost:5000/api/security/log';
+};
+
 initSecurityMonitor({
-  reportUrl: "http://localhost:5000/api/security/log",
+  reportUrl: getSecurityReportUrl(),
   showToast: true,
 });
 
 createRoot(document.getElementById("root")!).render(
   <CartProvider>
-    <BrowserRouter>
+    <BrowserRouter basename={basePath}>
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/about" element={<AboutUsPage />} />

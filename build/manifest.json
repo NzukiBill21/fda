@@ -2,59 +2,59 @@
   "name": "Monda Food Delivery",
   "short_name": "Monda",
   "description": "Premium food delivery service with authentic African cuisine",
-  "start_url": "/fda/build/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#e63946",
   "orientation": "portrait-primary",
-  "scope": "/fda/build/",
+  "scope": "/",
   "lang": "en",
   "categories": ["food", "lifestyle", "shopping"],
   "icons": [
     {
-      "src": "/fda/build/icon-72x72.png",
+      "src": "/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-96x96.png",
+      "src": "/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-128x128.png",
+      "src": "/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-144x144.png",
+      "src": "/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-152x152.png",
+      "src": "/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-192x192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-384x384.png",
+      "src": "/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/fda/build/icon-512x512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
@@ -62,19 +62,19 @@
   ],
   "screenshots": [
     {
-      "src": "/fda/build/screenshot-mobile-1.png",
+      "src": "/screenshot-mobile-1.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/fda/build/screenshot-mobile-2.png",
+      "src": "/screenshot-mobile-2.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/fda/build/screenshot-desktop-1.png",
+      "src": "/screenshot-desktop-1.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
@@ -85,10 +85,10 @@
       "name": "Order Food",
       "short_name": "Order",
       "description": "Quick access to order food",
-      "url": "/fda/build/menu",
+      "url": "/menu",
       "icons": [
         {
-          "src": "/fda/build/shortcut-order.png",
+          "src": "/shortcut-order.png",
           "sizes": "96x96"
         }
       ]
@@ -97,10 +97,10 @@
       "name": "Track Order",
       "short_name": "Track",
       "description": "Track your current order",
-      "url": "/fda/build/track",
+      "url": "/track",
       "icons": [
         {
-          "src": "/fda/build/shortcut-track.png",
+          "src": "/shortcut-track.png",
           "sizes": "96x96"
         }
       ]
@@ -109,10 +109,10 @@
       "name": "My Orders",
       "short_name": "Orders",
       "description": "View order history",
-      "url": "/fda/build/orders",
+      "url": "/orders",
       "icons": [
         {
-          "src": "/fda/build/shortcut-orders.png",
+          "src": "/shortcut-orders.png",
           "sizes": "96x96"
         }
       ]
@@ -129,19 +129,19 @@
   "protocol_handlers": [
     {
       "protocol": "web+monda",
-      "url": "/fda/build/?action=%s"
+      "url": "/?action=%s"
     }
   ],
   "file_handlers": [
     {
-      "action": "/fda/build/upload",
+      "action": "/upload",
       "accept": {
         "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"]
       }
     }
   ],
   "share_target": {
-    "action": "/fda/build/share",
+    "action": "/share",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
