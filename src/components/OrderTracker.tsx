@@ -96,7 +96,8 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ orderId, onClose }) => {
 
   const fetchOrderDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`);
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl(`api/orders/${orderId}`));
       const result = await response.json();
       
       if (result.success) {

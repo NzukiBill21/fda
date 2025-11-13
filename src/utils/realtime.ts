@@ -19,7 +19,8 @@ export class RealtimeManager {
     }
 
     try {
-      this.eventSource = new EventSource(`http://localhost:5000/api/realtime?token=${token}`);
+      const { createApiUrl } = await import('../config/api');
+      this.eventSource = new EventSource(`${createApiUrl('api/realtime')}?token=${token}`);
       
       this.eventSource.onopen = () => {
         logger.info('Real-time connection established');
@@ -114,7 +115,8 @@ export class RealtimeManager {
   // Send real-time updates to server
   async sendUpdate(type: string, data: any): Promise<void> {
     try {
-      await fetch('http://localhost:5000/api/realtime/send', {
+      const { createApiUrl } = await import('../config/api');
+      await fetch(createApiUrl('api/realtime/send'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

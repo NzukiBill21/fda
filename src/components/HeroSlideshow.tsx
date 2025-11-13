@@ -67,7 +67,8 @@ export function HeroSlideshow({ onAddToCart, onOpenCart, onDismiss }: HeroSlides
   useEffect(() => {
     const fetchMenuItems = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/menu');
+        const { createApiUrl } = await import('../config/api');
+        const res = await fetch(createApiUrl('api/menu'));
         const data = await res.json();
         
         if (data.success && data.menuItems && data.menuItems.length > 0) {

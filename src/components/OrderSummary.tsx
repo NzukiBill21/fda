@@ -108,7 +108,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
       console.log('Submitting order:', orderData);
 
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl('api/orders'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

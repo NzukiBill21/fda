@@ -50,7 +50,8 @@ export function CatererDashboard({ token, user, onLogout }: CatererDashboardProp
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/caterer/orders', {
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl('api/caterer/orders'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -78,7 +79,7 @@ export function CatererDashboard({ token, user, onLogout }: CatererDashboardProp
   const updateOrderStatus = async (orderId: string, status: 'PREPARING' | 'READY') => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/caterer/orders/${orderId}/status`, {
+      const response = await fetch(createApiUrl(`api/caterer/orders/${orderId}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

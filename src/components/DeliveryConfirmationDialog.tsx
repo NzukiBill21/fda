@@ -31,7 +31,8 @@ export function DeliveryConfirmationDialog({ isOpen, onClose, orderId, onConfirm
     setIsSubmitting(true);
     try {
       // Send help request to backend
-      const response = await fetch('http://localhost:5000/api/orders/support-request', {
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl('api/orders/support-request'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

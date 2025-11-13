@@ -33,7 +33,8 @@ export default function SecurityCenter() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/security/events');
+        const { createApiUrl } = await import('../config/api');
+        const res = await fetch(createApiUrl('api/security/events'));
         if (res.ok) {
           const data = await res.json();
           if (!cancelled && Array.isArray(data?.events)) setEvents(data.events);

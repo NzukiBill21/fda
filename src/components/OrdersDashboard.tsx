@@ -119,7 +119,8 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
       const tk = resolveToken();
       if (!tk) return;
       
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl('api/admin/users'), {
         headers: {
           'Authorization': `Bearer ${tk}`
         }
@@ -155,7 +156,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
         params.append('status', filterStatus);
       }
 
-      const response = await fetch(`http://localhost:5000/api/admin/orders?${params}`, {
+      const response = await fetch(`${createApiUrl('api/admin/orders')}?${params}`, {
         headers: {
           'Authorization': `Bearer ${tk}`
         }
@@ -187,7 +188,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
         return;
       }
       
-      const response = await fetch('http://localhost:5000/api/admin/orders/stats', {
+      const response = await fetch(createApiUrl('api/admin/orders/stats'), {
         headers: {
           'Authorization': `Bearer ${tk}`
         }
@@ -234,7 +235,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
   const assignToDeliveryGuy = async (orderId: string, deliveryGuyId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/assign`, {
+      const response = await fetch(createApiUrl(`api/admin/orders/${orderId}/assign`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -279,7 +280,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
         randomItems.push({ menuItemId: 'ribs-1', quantity: 1 });
       }
 
-      const response = await fetch('http://localhost:5000/api/demo/order', {
+      const response = await fetch(createApiUrl('api/demo/order'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -310,7 +311,7 @@ const OrdersDashboard: React.FC<OrdersDashboardProps> = ({ token, variant = 'def
   const updateOrderStatus = async (orderId: string, status: string, notes?: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
+      const response = await fetch(createApiUrl(`api/admin/orders/${orderId}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -4,7 +4,7 @@
   import path from 'path';
 
   export default defineConfig({
-    base: '/fda/build/', // Base path for XAMPP deployment
+    base: '/fda/', // Base path for XAMPP deployment
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -53,15 +53,18 @@
     },
     build: {
       target: 'es2019',
-      outDir: 'build',
+      outDir: 'dist',
       sourcemap: false,
-      minify: 'esbuild',
+      minify: false,
       rollupOptions: {
-        treeshake: true,
+        treeshake: false,
+        output: {
+          format: 'es',
+        },
       },
     },
     esbuild: {
-      drop: ['console', 'debugger'],
+      drop: ['debugger'], // Keep console.log for debugging
       legalComments: 'none',
     },
     server: {

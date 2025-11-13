@@ -63,7 +63,8 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
 
   const fetchDeliveryGuys = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/users', {
+      const { createApiUrl } = await import('../config/api');
+      const res = await fetch(createApiUrl('api/admin/users'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -82,7 +83,7 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
 
   const fetchData = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/dashboard', {
+      const res = await fetch(createApiUrl('api/admin/dashboard'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -108,7 +109,8 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/users', {
+      const { createApiUrl } = await import('../config/api');
+      const res = await fetch(createApiUrl('api/admin/users'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -146,7 +148,8 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
       const fetchTimeout1 = setTimeout(() => controller1.abort(), 8000);
       
       // First, find the user by email
-      const usersRes = await fetch('http://localhost:5000/api/admin/users', {
+      const { createApiUrl } = await import('../config/api');
+      const usersRes = await fetch(createApiUrl('api/admin/users'), {
         headers: { 'Authorization': `Bearer ${token}` },
         signal: controller1.signal
       });
@@ -167,7 +170,7 @@ export function AdminDashboard({ token, setIsAuthOpen, onLogout }: AdminDashboar
       const controller2 = new AbortController();
       const fetchTimeout2 = setTimeout(() => controller2.abort(), 8000);
       
-      const promoteRes = await fetch(`http://localhost:5000/api/admin/users/${user.id}/promote`, {
+      const promoteRes = await fetch(createApiUrl(`api/admin/users/${user.id}/promote`), {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

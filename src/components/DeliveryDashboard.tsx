@@ -140,7 +140,8 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const fetchAssignments = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/delivery/assignments', {
+      const { createApiUrl } = await import('../config/api');
+      const res = await fetch(createApiUrl('api/delivery/assignments'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -158,7 +159,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const fetchEarnings = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/delivery/earnings', {
+      const res = await fetch(createApiUrl('api/delivery/earnings'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -172,7 +173,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const fetchPerformance = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/delivery/performance', {
+      const res = await fetch(createApiUrl('api/delivery/performance'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -186,7 +187,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/delivery/orders', {
+      const res = await fetch(createApiUrl('api/delivery/orders'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -200,7 +201,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const updateOrderStatus = async (orderId: string, status: string, notes?: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/delivery/orders/${orderId}/location`, {
+      const res = await fetch(createApiUrl(`api/delivery/orders/${orderId}/location`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +249,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
         );
       }
 
-      const res = await fetch('http://localhost:5000/api/delivery/status', {
+      const res = await fetch(createApiUrl('api/delivery/status'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -273,7 +274,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const handleAcceptOrder = async (orderId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/delivery/accept/${orderId}`, {
+      const res = await fetch(createApiUrl(`api/delivery/accept/${orderId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -293,7 +294,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
 
   const handleCompleteOrder = async (orderId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/delivery/complete/${orderId}`, {
+      const res = await fetch(createApiUrl(`api/delivery/complete/${orderId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -343,7 +344,8 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     
     try {
       // Fetch from backend first - this is the source of truth for profile picture
-      const res = await fetch('http://localhost:5000/api/delivery/profile', {
+      const { createApiUrl } = await import('../config/api');
+      const res = await fetch(createApiUrl('api/delivery/profile'), {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -405,7 +407,7 @@ export function DeliveryDashboard({ token, user }: DeliveryDashboardProps) {
     try {
       // Save to backend - include base64 images so they persist
       // The backend stores avatarUrl as a string, which can handle base64 data URLs
-      const res = await fetch('http://localhost:5000/api/delivery/profile', {
+      const res = await fetch(createApiUrl('api/delivery/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

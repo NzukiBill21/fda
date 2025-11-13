@@ -6,14 +6,9 @@ const getApiUrl = (): string => {
   }
   
   // Check if running on XAMPP (localhost/fda/...)
-  if (window.location.pathname.includes('/fda/')) {
+  if (window.location.pathname.includes('/fda/') || window.location.hostname === 'localhost') {
     // XAMPP: Use relative path to PHP backend
     return '/fda/backend-php';
-  }
-  
-  // Development fallback (Node.js backend)
-  if (import.meta.env.DEV) {
-    return 'http://localhost:5000';
   }
   
   // Production fallback (if no env var set)

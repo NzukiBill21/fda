@@ -28,7 +28,8 @@ export function AuthDialog({ isOpen, onClose, onLoginSuccess }: AuthDialogProps)
         ? { email: formData.email, password: formData.password }
         : formData;
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

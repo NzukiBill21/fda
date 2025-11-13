@@ -22,6 +22,7 @@ import { PasswordChangeDialog } from './components/PasswordChangeDialog';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import { API_URL, createApiUrl } from './config/api';
 
 interface CartItem {
   id: string;
@@ -58,7 +59,7 @@ export default function App() {
   useEffect(() => {
     const savedToken = localStorage.getItem('authToken');
     if (savedToken) {
-      fetch('http://localhost:5000/api/auth/me', {
+      fetch(createApiUrl('api/auth/me'), {
         headers: {
           'Authorization': `Bearer ${savedToken}`
         },
@@ -209,7 +210,7 @@ export default function App() {
         estimatedDeliveryTime: 30
       };
 
-      const response = await fetch('http://localhost:5000/api/orders', {
+        const response = await fetch(createApiUrl('api/orders'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +238,7 @@ export default function App() {
         }, 500);
       } else {
         // Try demo order endpoint as fallback
-        const demoResponse = await fetch('http://localhost:5000/api/demo/order', {
+        const demoResponse = await fetch(createApiUrl('api/demo/order'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -312,7 +313,7 @@ export default function App() {
     // Refresh user data to get updated mustChangePassword status
     if (authToken) {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/me', {
+        const response = await fetch(createApiUrl('api/auth/me'), {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
@@ -458,9 +459,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-950 via-red-900 to-yellow-900 relative">
       {/* Mondas watermark background - consistent with manager dashboard - more visible */}
-      <div className="pointer-events-none select-none absolute inset-0 opacity-20" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '800px', backgroundRepeat: 'no-repeat', backgroundPosition: 'right -50px top -40px', filter: 'blur(0.5px)'}} />
-      <div className="pointer-events-none select-none absolute inset-0 opacity-15" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '700px', backgroundRepeat: 'no-repeat', backgroundPosition: 'left -30px bottom -30px', filter: 'blur(0.5px)'}} />
-      <div className="pointer-events-none select-none absolute inset-0 opacity-12" style={{backgroundImage: 'url(/src/assets/b75535c69f22b26f18a7d3210cd25415150770f2.png)', backgroundSize: '600px', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center', filter: 'blur(1px)'}} />
+      {/* Background watermarks removed - causing path issues */}
       
         <Header 
         cartCount={cartCount}

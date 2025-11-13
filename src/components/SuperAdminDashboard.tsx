@@ -103,7 +103,8 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/dashboard', {
+      const { createApiUrl } = await import('../config/api');
+      const res = await fetch(createApiUrl('api/admin/dashboard'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -124,7 +125,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
   const fetchUsers = async () => {
     setLoading(prev => ({ ...prev, users: true }));
     try {
-      const res = await fetch('http://localhost:5000/api/admin/users', {
+      const res = await fetch(createApiUrl('api/admin/users'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -147,7 +148,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
 
   const fetchDeliveryGuys = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/users', {
+      const res = await fetch(createApiUrl('api/admin/users'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -166,7 +167,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
   const fetchMenuItems = async () => {
     setLoading(prev => ({ ...prev, menu: true }));
     try {
-      const res = await fetch('http://localhost:5000/api/menu', {
+      const res = await fetch(createApiUrl('api/menu'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -190,7 +191,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
   const checkSystemStatus = async () => {
     try {
       // Check backend
-      const backendRes = await fetch('http://localhost:5000/api/health');
+      const backendRes = await fetch(createApiUrl('api/health'));
       const backendStatus = backendRes.ok ? 'online' : 'offline';
       
       setSystemStatus(prev => ({
@@ -277,7 +278,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
       const controller = new AbortController();
       const fetchTimeout = setTimeout(() => controller.abort(), 8000);
       
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(createApiUrl(endpoint), {
         method,
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -343,7 +344,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
           break;
       }
       
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(createApiUrl(endpoint), {
         method,
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -471,7 +472,7 @@ export function SuperAdminDashboard({ token, onLogout }: SuperAdminDashboardProp
           break;
       }
       
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(createApiUrl(endpoint), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

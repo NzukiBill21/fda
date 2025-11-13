@@ -122,6 +122,8 @@ function matchRoute($path, $method) {
         
         // Security routes
         ['/api/security/log', 'POST', __DIR__ . '/routes/security/log.php'],
+        ['/api/security/log', 'HEAD', __DIR__ . '/routes/security/log.php'],
+        ['/api/security/log', 'GET', __DIR__ . '/routes/security/log.php'],
         
         // Support routes
         ['/api/orders/support-request', 'POST', __DIR__ . '/routes/orders/support-request.php'],

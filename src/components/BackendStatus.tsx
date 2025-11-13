@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createApiUrl } from '../config/api';
 
 export function BackendStatus() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
@@ -12,7 +13,7 @@ export function BackendStatus() {
 
   const checkBackend = async () => {
     try {
-      const response = await fetch('http://localhost:5000/health', {
+      const response = await fetch(createApiUrl('api/health'), {
         signal: AbortSignal.timeout(3000) // 3 second timeout
       });
       const data = await response.json();

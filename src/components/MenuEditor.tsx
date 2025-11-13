@@ -179,7 +179,8 @@ const MenuEditor = ({ token, onClose }: MenuEditorProps) => {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/admin/categories', {
+        const { createApiUrl } = await import('../config/api');
+        const res = await fetch(createApiUrl('api/admin/categories'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -215,7 +216,7 @@ const MenuEditor = ({ token, onClose }: MenuEditorProps) => {
   const fetchMenuItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/menu', {
+      const res = await fetch(createApiUrl('api/menu'), {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache'
@@ -266,7 +267,7 @@ const MenuEditor = ({ token, onClose }: MenuEditorProps) => {
         category: item.category || 'Main Courses'
       };
 
-      const res = await fetch(`http://localhost:5000/api/admin/menu/${item.id}`, {
+      const res = await fetch(createApiUrl(`api/admin/menu/${item.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -300,7 +301,7 @@ const MenuEditor = ({ token, onClose }: MenuEditorProps) => {
     const isInvalidId = itemId && !itemId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/menu/${itemId}`, {
+      const res = await fetch(createApiUrl(`api/admin/menu/${itemId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -409,7 +410,7 @@ const MenuEditor = ({ token, onClose }: MenuEditorProps) => {
       delete itemToAdd.imageFile;
       delete itemToAdd.imagePreview;
 
-      const res = await fetch('http://localhost:5000/api/admin/menu', {
+      const res = await fetch(createApiUrl('api/admin/menu'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1025,7 +1026,7 @@ const InventoryItemCard = ({ item, token, onUpdate }: { item: any, token: string
   const handleUpdate = async () => {
     setIsUpdating(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/menu/${item.id}`, {
+      const res = await fetch(createApiUrl(`api/admin/menu/${item.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

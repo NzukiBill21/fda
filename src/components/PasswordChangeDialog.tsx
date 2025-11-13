@@ -66,7 +66,8 @@ export function PasswordChangeDialog({ isOpen, token, onPasswordChanged }: Passw
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+      const { createApiUrl } = await import('../config/api');
+      const response = await fetch(createApiUrl('api/auth/change-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
